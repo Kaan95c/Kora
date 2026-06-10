@@ -5,9 +5,8 @@ import type { ReactElement } from "react";
  * Envoi d'email centralisé (Resend) — **best-effort** : ne lève jamais, et
  * ne fait rien si `RESEND_API_KEY` est absente (mode démo).
  *
- * Sandbox : si `RESEND_TEST_EMAIL` est défini, tous les emails sont redirigés
- * vers cette adresse (le vrai destinataire est rappelé dans le sujet) — permet
- * de tester sans domaine vérifié.
+ * Expéditeur = `RESEND_FROM` (domaine vérifié `kora-app.fr`). Les emails partent
+ * aux vrais destinataires — plus aucune redirection sandbox.
  */
 type SendArgs = {
   to: string;
@@ -25,18 +24,22 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
   if (!apiKey) return { ok: false, skipped: true };
 
   const from = process.env.RESEND_FROM || DEFAULT_FROM;
-  const redirect = process.env.RESEND_TEST_EMAIL?.trim();
-  const to = redirect || args.to;
-  const subject =
-    redirect && redirect !== args.to
-      ? `[→ ${args.to}] ${args.subject}`
-      : args.subject;
 
   try {
     const resend = new Resend(apiKey);
     const { error } = args.react
-      ? await resend.emails.send({ from, to, subject, react: args.react })
-      : await resend.emails.send({ from, to, subject, text: args.text ?? "" });
+      ? await resend.emails.send({
+          from,
+          to: args.to,
+          subject: args.subject,
+          react: args.react,
+        })
+      : await resend.emails.send({
+          from,
+          to: args.to,
+          subject: args.subject,
+          text: args.text ?? "",
+        });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   } catch (e) {

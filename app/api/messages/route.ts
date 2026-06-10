@@ -141,7 +141,7 @@ export async function POST(request: Request) {
     },
   });
 
-  // Envoi réel best-effort via lib/email (no-op si pas de clé ; redirige en sandbox).
+  // Envoi réel best-effort via lib/email (no-op si pas de clé).
   if (contact.email) {
     await sendEmail({
       to: contact.email,
