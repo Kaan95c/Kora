@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LegalProse, LegalDisclaimer } from "@/components/legal/LegalProse";
+import { LegalProse } from "@/components/legal/LegalProse";
 
 export const metadata: Metadata = {
   title: "Mentions légales — Kora",
@@ -15,8 +15,6 @@ export default function MentionsLegalesPage() {
         Dernière mise à jour : 11 juin 2026
       </p>
 
-      <LegalDisclaimer />
-
       <h2>1. Éditeur du service</h2>
       <p>
         Le service <strong>Kora</strong>, accessible à l&apos;adresse{" "}
@@ -26,12 +24,11 @@ export default function MentionsLegalesPage() {
         <li>
           <strong>Kaan Tekten</strong>, entrepreneur individuel (micro-entreprise)
         </li>
-        <li>Adresse : [À COMPLÉTER]</li>
-        <li>SIRET : [À COMPLÉTER]</li>
+        <li>Adresse : Paris, France</li>
+        <li>SIRET : En cours d&apos;immatriculation</li>
         <li>
           TVA : non applicable, article 293 B du Code général des impôts
-          (franchise en base de TVA) — [À VÉRIFIER selon votre seuil de chiffre
-          d&apos;affaires]
+          (franchise en base de TVA)
         </li>
         <li>
           Contact :{" "}

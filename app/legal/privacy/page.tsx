@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LegalProse, LegalDisclaimer } from "@/components/legal/LegalProse";
+import { LegalProse } from "@/components/legal/LegalProse";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité — Kora",
@@ -15,8 +15,6 @@ export default function PrivacyPage() {
       <p className="!mt-2 text-sm text-[#747870]">
         Dernière mise à jour : 11 juin 2026
       </p>
-
-      <LegalDisclaimer />
 
       <p>
         La présente politique explique comment <strong>Kora</strong> collecte,
@@ -122,8 +120,7 @@ export default function PrivacyPage() {
         <li>
           <strong>Données de compte et contenu</strong> : pendant toute la durée
           d&apos;utilisation du service, puis supprimées ou anonymisées dans un
-          délai raisonnable après la fermeture du compte [À COMPLÉTER : ex. 30 à
-          90 jours].
+          délai de 90 jours après la fermeture du compte.
         </li>
         <li>
           <strong>Documents comptables (factures)</strong> : conservés 10 ans,

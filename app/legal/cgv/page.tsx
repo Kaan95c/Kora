@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { LegalProse, LegalDisclaimer } from "@/components/legal/LegalProse";
+import { LegalProse } from "@/components/legal/LegalProse";
 
 export const metadata: Metadata = {
   title: "Conditions Générales de Vente — Kora",
@@ -15,8 +15,6 @@ export default function CgvPage() {
       <p className="!mt-2 text-sm text-[#747870]">
         Dernière mise à jour : 11 juin 2026
       </p>
-
-      <LegalDisclaimer />
 
       <h2>1. Objet et champ d&apos;application</h2>
       <p>
@@ -162,9 +160,12 @@ export default function CgvPage() {
       <p>
         Conformément au Code de la consommation, le client consommateur peut
         recourir gratuitement à un médiateur de la consommation :{" "}
-        <strong>[À COMPLÉTER : nom et coordonnées du médiateur]</strong>. Il peut
-        également utiliser la plateforme européenne de Règlement en Ligne des
-        Litiges :{" "}
+        <strong>CM2C</strong> — 14 rue Saint Jean, 75017 Paris —{" "}
+        <a href="https://cm2c.net" rel="nofollow">
+          cm2c.net
+        </a>
+        . Il peut également utiliser la plateforme européenne de Règlement en
+        Ligne des Litiges :{" "}
         <a href="https://ec.europa.eu/consumers/odr" rel="nofollow">
           ec.europa.eu/consumers/odr
         </a>
