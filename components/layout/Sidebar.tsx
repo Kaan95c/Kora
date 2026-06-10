@@ -1,0 +1,114 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  FileText,
+  Inbox,
+  Calendar,
+  TrendingUp,
+  Zap,
+  Settings,
+  Plus,
+  type LucideIcon,
+} from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
+type NavItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+};
+
+const mainNav: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Contacts", href: "/contacts", icon: Users },
+  { label: "Projects", href: "/projects", icon: Briefcase },
+  { label: "Documents", href: "/documents", icon: FileText },
+  { label: "Inbox", href: "/inbox", icon: Inbox },
+  { label: "Scheduler", href: "/scheduler", icon: Calendar },
+  { label: "Finance", href: "/finance", icon: TrendingUp },
+  { label: "Automations", href: "/automations", icon: Zap },
+];
+
+const settingsNav: NavItem = {
+  label: "Settings",
+  href: "/settings",
+  icon: Settings,
+};
+
+function NavLink({ item }: { item: NavItem }) {
+  const pathname = usePathname();
+  const active =
+    pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        "font-inter flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-on-surface-variant hover:bg-primary/[0.06]"
+      )}
+    >
+      <Icon
+        className={cn(
+          "h-5 w-5 shrink-0",
+          active ? "text-primary" : "text-on-surface-variant"
+        )}
+        strokeWidth={1.75}
+      />
+      {item.label}
+    </Link>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <aside className="flex w-[220px] shrink-0 flex-col border-r border-outline-variant/50 bg-background">
+      {/* Logo */}
+      <div className="px-5 pb-4 pt-6">
+        <Image
+          src="/logo.png"
+          alt="Kora"
+          width={84}
+          height={86}
+          priority
+          className="h-auto w-[84px]"
+        />
+        <p className="font-inter mt-2 text-xs font-normal text-on-surface-variant">
+          Creative Partner
+        </p>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex flex-1 flex-col gap-0.5 px-3">
+        {mainNav.map((item) => (
+          <NavLink key={item.href} item={item} />
+        ))}
+
+        <div className="my-2 border-t border-outline-variant/50" />
+
+        <NavLink item={settingsNav} />
+      </nav>
+
+      {/* Quick Action */}
+      <div className="p-4">
+        <button
+          type="button"
+          className="font-manrope flex w-full items-center justify-center gap-2 rounded-full bg-[#1b1c1a] px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:-translate-y-px hover:opacity-90"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2} />
+          Quick Action
+        </button>
+      </div>
+    </aside>
+  );
+}

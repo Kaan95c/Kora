@@ -1,0 +1,439 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { Download, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+
+import { StatusBadge, type StatusVariant } from "@/components/shared/StatusBadge";
+
+// ───────────────────────── Types ─────────────────────────
+
+type Transaction = {
+  id: string;
+  date: string;
+  amount: number;
+  status: string;
+  method: string | null;
+  contact: { firstName: string; lastName: string } | null;
+};
+
+type RevenuePoint = { month: string; collected: number; expected: number };
+
+type FinanceData = {
+  totalRevenue: number;
+  totalRevenueGrowth: number;
+  outstandingAmount: number;
+  outstandingCount: number;
+  revenueChart: RevenuePoint[];
+  transactions: Transaction[];
+};
+
+const TX_STATUS: Record<string, { label: string; variant: StatusVariant }> = {
+  PAID: { label: "Paid", variant: "paid" },
+  PENDING: { label: "Pending", variant: "pending" },
+  OVERDUE: { label: "Overdue", variant: "overdue" },
+  REFUNDED: { label: "Refunded", variant: "draft" },
+};
+
+const PER_PAGE = 5;
+
+// ───────────────────────── Helpers ─────────────────────────
+
+const money2 = (n: number) =>
+  n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+function initials(c: Transaction["contact"]) {
+  return c ? `${c.firstName[0] ?? ""}${c.lastName[0] ?? ""}`.toUpperCase() : "—";
+}
+
+function clientName(c: Transaction["contact"]) {
+  return c ? `${c.firstName} ${c.lastName}` : "—";
+}
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function methodLabel(m: string | null) {
+  switch (m) {
+    case "CARD":
+      return "Card";
+    case "BANK_TRANSFER":
+      return "Bank transfer";
+    case "SEPA":
+      return "SEPA";
+    case "CASH":
+      return "Cash";
+    default:
+      return m ?? "";
+  }
+}
+
+function csvCell(v: string) {
+  return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+
+// ───────────────────────── Page ─────────────────────────
+
+export default function FinancePage() {
+  const [data, setData] = useState<FinanceData | null>(null);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    fetch("/api/finance")
+      .then((r) => r.json())
+      .then((d: FinanceData) => setData(d))
+      .catch(() =>
+        setData({
+          totalRevenue: 0,
+          totalRevenueGrowth: 0,
+          outstandingAmount: 0,
+          outstandingCount: 0,
+          revenueChart: [],
+          transactions: [],
+        })
+      );
+  }, []);
+
+  const transactions = useMemo(() => data?.transactions ?? [], [data]);
+  const totalPages = Math.max(1, Math.ceil(transactions.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = transactions.slice(
+    (safePage - 1) * PER_PAGE,
+    safePage * PER_PAGE
+  );
+  const from = transactions.length === 0 ? 0 : (safePage - 1) * PER_PAGE + 1;
+  const to = Math.min(safePage * PER_PAGE, transactions.length);
+
+  function exportCSV() {
+    if (!data) return;
+    const header = [
+      "Date",
+      "Client",
+      "Transaction ID",
+      "Amount",
+      "Status",
+      "Method",
+    ];
+    const rows = data.transactions.map((tx) => [
+      fmtDate(tx.date),
+      clientName(tx.contact),
+      `#${tx.id.slice(0, 8).toUpperCase()}`,
+      tx.amount.toFixed(2),
+      TX_STATUS[tx.status]?.label ?? tx.status,
+      methodLabel(tx.method),
+    ]);
+    const csv = [header, ...rows]
+      .map((r) => r.map(csvCell).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "kora-transactions.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ─── Skeleton ───
+  if (!data) {
+    return (
+      <div className="animate-pulse">
+        <div className="mb-8 flex items-start justify-between">
+          <div className="space-y-2">
+            <div className="h-9 w-64 rounded-xl bg-[#efeeea]" />
+            <div className="h-4 w-96 rounded-lg bg-[#efeeea]" />
+          </div>
+          <div className="h-10 w-32 rounded-lg bg-[#efeeea]" />
+        </div>
+        <div className="mb-6 grid grid-cols-5 gap-6">
+          <div className="col-span-3 h-72 rounded-2xl bg-[#efeeea]" />
+          <div className="col-span-2 flex flex-col gap-4">
+            <div className="h-[136px] flex-1 rounded-2xl bg-[#efeeea]" />
+            <div className="h-[136px] flex-1 rounded-2xl bg-[#efeeea]" />
+          </div>
+        </div>
+        <div className="h-80 rounded-2xl bg-[#efeeea]" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* HEADER */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-manrope text-[32px] font-semibold tracking-[-0.01em] text-[#1b1c1a]">
+            Finance Overview
+          </h1>
+          <p className="font-inter mt-1 text-base text-[#444841]">
+            Track your revenue, expenses, and transaction health.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={exportCSV}
+          className="font-inter flex items-center gap-2 rounded-lg border-[1.5px] border-[#52634c] bg-transparent px-4 py-2.5 text-sm font-medium text-[#52634c] transition-all hover:-translate-y-px hover:bg-[#d5e8cb]/40"
+        >
+          <Download className="h-4 w-4" strokeWidth={2} />
+          Export CSV
+        </button>
+      </div>
+
+      {/* SECTION HAUTE */}
+      <div className="mt-8 grid grid-cols-5 gap-6">
+        {/* Revenue Trends */}
+        <div className="col-span-3 rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
+                Revenue Trends
+              </h2>
+              <p className="font-inter mt-0.5 text-[13px] text-[#444841]">
+                Performance comparison: Collected vs Expected
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="font-inter flex items-center gap-1.5 text-xs font-medium text-[#444841]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#52634c]" />
+                Collected
+              </span>
+              <span className="font-inter flex items-center gap-1.5 text-xs font-medium text-[#444841]">
+                <span className="h-2.5 w-2.5 rounded-full border border-[#705a4a] bg-[#f8dac5]" />
+                Expected
+              </span>
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart
+              data={data.revenueChart}
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              barGap={4}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#c4c8be"
+                opacity={0.3}
+                vertical={false}
+              />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 11, fill: "#444841" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tickFormatter={(value) => `$${Number(value) / 1000}k`}
+                tick={{ fontSize: 11, fill: "#444841" }}
+                tickLine={false}
+                axisLine={false}
+                width={45}
+              />
+              <Tooltip
+                cursor={{ fill: "rgba(82,99,76,0.06)" }}
+                contentStyle={{
+                  background: "#ffffff",
+                  border: "1px solid #c4c8be",
+                  borderRadius: 8,
+                  fontSize: 13,
+                }}
+                formatter={(value, name) => [
+                  `$${Number(value).toLocaleString()}`,
+                  name,
+                ]}
+              />
+              <Bar
+                dataKey="collected"
+                fill="#52634c"
+                radius={[4, 4, 0, 0]}
+                name="Collected"
+              />
+              <Bar
+                dataKey="expected"
+                fill="#f8dac5"
+                radius={[4, 4, 0, 0]}
+                name="Expected"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Colonne droite */}
+        <div className="col-span-2 flex flex-col gap-4">
+          {/* Total Revenue */}
+          <div className="relative flex-1 overflow-hidden rounded-2xl bg-[#52634c] p-6 text-white">
+            <TrendingUp
+              className="absolute right-4 top-4 h-10 w-10 text-white opacity-20"
+              strokeWidth={1.5}
+            />
+            <p className="font-inter text-xs font-semibold uppercase tracking-wide text-white/70">
+              Total Revenue
+            </p>
+            <p className="font-manrope mt-2 text-[40px] font-bold leading-none">
+              ${money2(data.totalRevenue)}
+            </p>
+            <span className="font-inter mt-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
+              {data.totalRevenueGrowth >= 0 ? "+" : ""}
+              {data.totalRevenueGrowth}% from last month
+            </span>
+          </div>
+
+          {/* Outstanding Invoices */}
+          <div className="relative flex-1 overflow-hidden rounded-2xl bg-[#705a4a] p-6 text-white">
+            <p className="font-inter text-xs font-semibold uppercase tracking-wide text-white/70">
+              Outstanding Invoices
+            </p>
+            <p className="font-manrope mt-2 text-[40px] font-bold leading-none">
+              ${money2(data.outstandingAmount)}
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="font-inter rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
+                {data.outstandingCount} Pending
+              </span>
+              <span className="font-inter rounded-full bg-[#ba1a1a]/30 px-3 py-1 text-xs font-semibold">
+                Action required
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION BASSE — Recent Transactions */}
+      <div className="mt-6 rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
+            Recent Transactions
+          </h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="font-inter rounded-lg border border-[#c4c8be] bg-white px-4 py-2 text-[13px] font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
+            >
+              Filters
+            </button>
+            <button
+              type="button"
+              className="font-inter rounded-lg border border-[#c4c8be] bg-white px-4 py-2 text-[13px] font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
+            >
+              Sort by Date
+            </button>
+          </div>
+        </div>
+
+        {/* Header colonnes */}
+        <div className="grid grid-cols-5 border-b border-[#c4c8be]/50 pb-3">
+          {["Date", "Client", "Transaction ID", "Amount", "Status"].map((h) => (
+            <span
+              key={h}
+              className="font-inter text-[11px] font-semibold uppercase tracking-wide text-[#444841]"
+            >
+              {h}
+            </span>
+          ))}
+        </div>
+
+        {/* Lignes */}
+        <div>
+          {pageItems.map((tx) => {
+            const st = TX_STATUS[tx.status] ?? {
+              label: tx.status,
+              variant: "draft" as StatusVariant,
+            };
+            return (
+              <div
+                key={tx.id}
+                className="grid grid-cols-5 items-center border-b border-[#f5f3f0] py-4 transition-colors hover:bg-[#fbf9f5]"
+              >
+                <span className="font-inter text-sm text-[#444841]">
+                  {fmtDate(tx.date)}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#efeeea] font-inter text-[11px] font-bold text-[#444841]">
+                    {initials(tx.contact)}
+                  </span>
+                  <span className="font-inter text-sm font-medium text-[#1b1c1a]">
+                    {clientName(tx.contact)}
+                  </span>
+                </div>
+                <span className="font-mono text-sm text-[#444841]">
+                  #{tx.id.slice(0, 8).toUpperCase()}
+                </span>
+                <span className="font-manrope text-[15px] font-semibold text-[#1b1c1a]">
+                  ${money2(tx.amount)}
+                </span>
+                <div>
+                  <StatusBadge status={st.label} variant={st.variant} />
+                </div>
+              </div>
+            );
+          })}
+          {pageItems.length === 0 && (
+            <p className="font-inter py-10 text-center text-sm text-[#444841]">
+              No transactions yet.
+            </p>
+          )}
+        </div>
+
+        {/* Pagination */}
+        <div className="mt-4 flex items-center justify-between">
+          <span className="font-inter text-[13px] text-[#444841]">
+            Showing {from}-{to} of {transactions.length} transactions
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              aria-label="Previous page"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setPage(n)}
+                className={`flex h-8 w-8 items-center justify-center rounded-full font-inter text-sm transition-colors ${
+                  n === safePage
+                    ? "bg-[#1b1c1a] text-white"
+                    : "text-[#444841] hover:bg-[#efeeea]"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage === totalPages}
+              aria-label="Next page"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

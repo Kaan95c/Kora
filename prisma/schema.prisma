@@ -1,0 +1,362 @@
+// Kora — schéma Prisma (étape 2)
+// Multi-tenant : tout est rattaché à une Company (companyId).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── Enums ─────────────────────────
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum ContactStatus {
+  LEAD
+  PROSPECT
+  CLIENT
+  ARCHIVED
+}
+
+enum ProjectStatus {
+  INQUIRY
+  FOLLOW_UP
+  BOOKING
+  ACTIVE
+  ARCHIVED
+}
+
+enum DocumentType {
+  INVOICE
+  QUOTE
+  CONTRACT
+  PROPOSAL
+}
+
+enum DocumentStatus {
+  DRAFT
+  SENT
+  SIGNED
+  PAID
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  SEPA
+  CASH
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum MessageStatus {
+  DRAFT
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum AutomationTrigger {
+  NEW_LEAD
+  CONTRACT_SIGNED
+  INVOICE_SENT
+  PAYMENT_RECEIVED
+  PAYMENT_OVERDUE
+  APPOINTMENT_BOOKED
+  PROJECT_STATUS_CHANGED
+  TAG_ADDED
+}
+
+enum ActionType {
+  SEND_EMAIL
+  SEND_DOCUMENT
+  CREATE_TASK
+  CHANGE_PROJECT_STATUS
+  ADD_TAG
+  SEND_REMINDER
+}
+
+// ──────────────────────── Modèles ────────────────────────
+
+model Company {
+  id            String   @id @default(cuid())
+  name          String
+  plan          Plan     @default(FREE)
+  primaryColor  String   @default("#52634c")
+  invoicePrefix String   @default("FAC")
+  quotePrefix   String   @default("DEV")
+  logoUrl       String?
+  siret         String?
+  vatNumber     String?
+  address       String?
+  phone         String?
+  email         String?
+  ownerId       String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  owner        User?         @relation("CompanyOwner", fields: [ownerId], references: [id])
+  users        User[]        @relation("CompanyMembers")
+  contacts     Contact[]
+  projects     Project[]
+  documents    Document[]
+  payments     Payment[]
+  appointments Appointment[]
+  tasks        Task[]
+  sessionTypes SessionType[]
+  messages     Message[]
+  automations  Automation[]
+}
+
+model User {
+  id         String   @id @default(cuid())
+  supabaseId String   @unique
+  email      String   @unique
+  name       String?
+  companyId  String
+  company    Company  @relation("CompanyMembers", fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ownedCompany Company? @relation("CompanyOwner")
+
+  @@index([companyId])
+}
+
+model Contact {
+  id          String        @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  companyName String?
+  address     String?
+  notes       String?
+  status      ContactStatus @default(LEAD)
+  tags        String[]      @default([])
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  projects     Project[]
+  documents    Document[]
+  payments     Payment[]
+  appointments Appointment[]
+  messages     Message[]
+
+  @@index([companyId])
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  status      ProjectStatus @default(ACTIVE)
+  totalAmount Float         @default(0)
+  paidAmount  Float         @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  documents Document[]
+  payments  Payment[]
+  tasks     Task[]
+  messages  Message[]
+
+  @@index([companyId])
+  @@index([contactId])
+}
+
+model Document {
+  id        String         @id @default(cuid())
+  title     String
+  number    String?
+  type      DocumentType
+  status    DocumentStatus @default(DRAFT)
+  total     Float?
+  signedAt  DateTime?
+  dueDate   DateTime?
+  companyId String
+  company   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  payments  Payment[]
+  lineItems LineItem[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([companyId])
+  @@index([contactId])
+}
+
+model Payment {
+  id                    String         @id @default(cuid())
+  amount                Float
+  status                PaymentStatus  @default(PENDING)
+  method                PaymentMethod?
+  paidAt                DateTime?
+  dueDate               DateTime?
+  stripePaymentIntentId String?        @unique
+  companyId             String
+  company               Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId             String?
+  contact               Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  projectId             String?
+  project               Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  documentId            String?
+  document              Document?      @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@index([companyId])
+  @@index([documentId])
+}
+
+model Appointment {
+  id            String       @id @default(cuid())
+  title         String
+  startAt       DateTime
+  endAt         DateTime?
+  notes         String?
+  companyId     String
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId     String?
+  contact       Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  sessionTypeId String?
+  sessionType   SessionType? @relation(fields: [sessionTypeId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([companyId])
+  @@index([contactId])
+}
+
+model SessionType {
+  id        String   @id @default(cuid())
+  name      String
+  duration  Int      @default(30) // minutes
+  color     String   @default("#52634c")
+  price     Float?
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([companyId])
+}
+
+model Message {
+  id          String           @id @default(cuid())
+  direction   MessageDirection
+  status      MessageStatus    @default(SENT)
+  subject     String?
+  body        String
+  attachments String[]         @default([])
+  templateId  String?
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId   String?
+  contact     Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([companyId])
+  @@index([contactId])
+}
+
+model Automation {
+  id              String             @id @default(cuid())
+  name            String
+  description     String?
+  isActive        Boolean            @default(true)
+  trigger         AutomationTrigger
+  triggerConfig   Json?
+  lastTriggeredAt DateTime?
+  triggerCount    Int                @default(0)
+  companyId       String
+  company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  actions         AutomationAction[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([companyId])
+}
+
+model AutomationAction {
+  id           String     @id @default(cuid())
+  type         ActionType
+  order        Int        @default(0)
+  delayHours   Int        @default(0)
+  config       Json       @default("{}")
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId])
+}
+
+model LineItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  quantity    Float    @default(1)
+  unitPrice   Float
+  total       Float
+  taxRate     Float    @default(20)
+  order       Int      @default(0)
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  priority    Priority @default(MEDIUM)
+  completed   Boolean  @default(false)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([projectId])
+}
