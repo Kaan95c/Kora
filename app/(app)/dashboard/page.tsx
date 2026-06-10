@@ -136,16 +136,16 @@ export default function DashboardPage() {
           </div>
           <div className="h-7 w-32 rounded-full bg-[#efeeea]" />
         </div>
-        <div className="mb-6 grid grid-cols-3 gap-6">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-32 rounded-2xl bg-[#efeeea]" />
           ))}
         </div>
-        <div className="mb-6 grid grid-cols-5 gap-6">
-          <div className="col-span-3 h-72 rounded-2xl bg-[#efeeea]" />
-          <div className="col-span-2 h-72 rounded-2xl bg-[#efeeea]" />
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-6">
+          <div className="h-72 rounded-2xl bg-[#efeeea] lg:col-span-3" />
+          <div className="h-72 rounded-2xl bg-[#efeeea] lg:col-span-2" />
         </div>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           <div className="h-64 rounded-2xl bg-[#efeeea]" />
           <div className="h-64 rounded-2xl bg-[#efeeea]" />
         </div>
@@ -157,9 +157,9 @@ export default function DashboardPage() {
   return (
     <div>
       {/* HEADER */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="font-manrope text-[48px] font-bold leading-tight tracking-[-0.02em] text-[#52634c]">
+          <h1 className="font-manrope text-[32px] font-bold leading-tight tracking-[-0.02em] text-[#52634c] md:text-[48px]">
             Morning, {firstName}
           </h1>
           <p className="font-inter mt-1 text-base text-[#444841]">
@@ -173,7 +173,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 3 METRIC CARDS */}
-      <div className="mb-6 grid grid-cols-3 gap-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
         {/* Monthly Revenue */}
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between">
@@ -224,9 +224,9 @@ export default function DashboardPage() {
       </div>
 
       {/* SECTION CENTRALE */}
-      <div className="mb-6 grid grid-cols-5 gap-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-6">
         {/* Revenue Growth */}
-        <div className="col-span-3 rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+        <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] lg:col-span-3">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
               Revenue Growth
@@ -296,7 +296,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Upcoming */}
-        <div className="col-span-2 rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+        <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] lg:col-span-2">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
               Upcoming
@@ -344,7 +344,7 @@ export default function DashboardPage() {
       </div>
 
       {/* SECTION BASSE */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
         {/* Recent Projects */}
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <div className="mb-4 flex items-center justify-between">

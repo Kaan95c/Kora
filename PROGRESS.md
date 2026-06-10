@@ -2,7 +2,7 @@
 
 > **Référence d'état du projet.** À lire en début de chaque session Claude Code.
 > SaaS de gestion client pour freelances/agences créatives (alternative FR à HoneyBook).
-> **Dernière mise à jour : 2026-06-10 — étape 16 : MISE EN PRODUCTION (Vercel) ✅. Reset de la base de prod (fausses données supprimées) + **compte admin réel** créé. Étapes 1 à 15 = 9 pages + Supabase + Stripe + PDF + Resend + portail client. Prochaine : webhook Stripe prod + Google OAuth / abonnements SaaS.**
+> **Dernière mise à jour : 2026-06-10 — étapes 16→18 : MISE EN PRODUCTION (Vercel) + Stripe LIVE + **abonnements SaaS** (Checkout/Portal) + **responsive mobile complet**. Étapes 1 à 15 = 9 pages + Supabase + Stripe + PDF + Resend + portail client. Prochaine : Google OAuth + gating par plan + légal (CGV/RGPD).**
 > Voir aussi `CLAUDE.md` (design system + conventions).
 
 ---
@@ -27,7 +27,9 @@
 | Étape 14 — Resend (emails réels : facture, reçu, inbox) | ✅ Fait |
 | Étape 15 — Portail client (`/client/[token]`, lien signé HMAC, lecture seule) | ✅ Fait |
 | Étape 16 — **Mise en production (Vercel)** + reset prod + compte admin réel | ✅ Fait |
-| Étapes suivantes | ⏳ Webhook Stripe prod, Google OAuth, **abonnements SaaS Stripe** (Billing réel), relances auto |
+| Étape 17 — **Abonnements SaaS Stripe** (Checkout + Customer Portal + webhook + Billing branchée, plans FREE/STARTER/PRO) | ✅ Fait |
+| Étape 18 — **Responsive mobile complet** (sidebar overlay + hamburger + toutes les pages) | ✅ Fait |
+| Étapes suivantes | ⏳ Google OAuth, **gating/quotas par plan** (limites définies, pas encore enforcées), relances auto, légal (CGV/RGPD) |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
 **Les 9 pages sont complètes et branchées aux vraies données — plus aucun placeholder.** 🎉
@@ -39,6 +41,10 @@
 **⚠️ Le compte de test `test@kora.fr` et les données seed "Boutique Studio" N'EXISTENT PLUS (supprimés par le reset, base partagée dev=prod). Pour re-peupler du dev, recréer un compte via `/register` ou relancer les scripts seed.**
 
 **💳 STRIPE EN MODE LIVE (argent réel) depuis le 2026-06-10 : `STRIPE_SECRET_KEY=sk_live_…`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_…`, `STRIPE_WEBHOOK_SECRET=whsec_…` (endpoint **Live**), redeploy Vercel fait. → Les paiements clients sur `/pay/[id]` encaissent de VRAIES CB. La carte de test `4242…` ne marche plus en prod.**
+
+**🔁 ABONNEMENTS SaaS (étape 17) : le studio paie Kora. Plans **FREE / STARTER 19€ / PRO 39€** (mensuel). `Company` + champs Stripe (`stripeCustomerId`/`stripeSubscriptionId`/`subscriptionStatus`/`currentPeriodEnd`/`cancelAtPeriodEnd`). Routes `POST /api/billing/checkout` (Checkout subscription) + `POST /api/billing/portal` (Customer Portal). Webhook étendu : `checkout.session.completed` + `customer.subscription.created/updated/deleted` + `invoice.payment_failed` → sync `plan`/statut. Page `/settings/billing` branchée. Price IDs en env `STRIPE_PRICE_STARTER`/`STRIPE_PRICE_PRO` (test en local, live sur Vercel). Limites par plan dans `lib/billing-server.ts` (`PLAN_LIMITS`, **définies mais pas encore enforcées** → gating = lot suivant). Compte owner = PRO offert (sans abonnement Stripe).**
+
+**📱 RESPONSIVE MOBILE (étape 18) : `components/layout/AppShell.tsx` (état sidebar partagé). Sidebar = overlay + backdrop < md (`md:static` inchangé desktop), hamburger + logo dans la Topbar (recherche/Bell/Help/New Project cachés < md). Dashboard + toutes les pages : grids `grid-cols-1 md:/lg:`, tables (Contacts/Finance/Documents) en `overflow-x-auto` + `min-w`, drawers `w-full sm:w-[…]`, modals `mx-4`. Breakpoints : mobile défaut / `md:`768 / `lg:`1024. ⚠️ Inbox = empilé (liste 45% + conversation) ; une vraie UX master/détail reste à faire.**
 
 ---
 

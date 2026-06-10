@@ -225,7 +225,7 @@ function AutomationDrawer({
         }`}
       />
       <aside
-        className={`absolute right-0 top-0 flex h-full w-[500px] flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out ${
+        className={`absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out sm:w-[500px] ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }}
@@ -525,7 +525,7 @@ export default function AutomationsPage() {
           </div>
           <div className="h-10 w-44 rounded-lg bg-[#efeeea]" />
         </div>
-        <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-24 rounded-2xl bg-[#efeeea]" />
           ))}
@@ -562,7 +562,7 @@ export default function AutomationsPage() {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
           label="Active automations"
           value={String(stats.active)}

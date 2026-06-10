@@ -164,9 +164,9 @@ export default function FinancePage() {
           </div>
           <div className="h-10 w-32 rounded-lg bg-[#efeeea]" />
         </div>
-        <div className="mb-6 grid grid-cols-5 gap-6">
+        <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
           <div className="col-span-3 h-72 rounded-2xl bg-[#efeeea]" />
-          <div className="col-span-2 flex flex-col gap-4">
+          <div className="flex flex-col gap-4 lg:col-span-2">
             <div className="h-[136px] flex-1 rounded-2xl bg-[#efeeea]" />
             <div className="h-[136px] flex-1 rounded-2xl bg-[#efeeea]" />
           </div>
@@ -199,9 +199,9 @@ export default function FinancePage() {
       </div>
 
       {/* SECTION HAUTE */}
-      <div className="mt-8 grid grid-cols-5 gap-6">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Revenue Trends */}
-        <div className="col-span-3 rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+        <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] lg:col-span-3">
           <div className="mb-4 flex items-start justify-between">
             <div>
               <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
@@ -278,7 +278,7 @@ export default function FinancePage() {
         </div>
 
         {/* Colonne droite */}
-        <div className="col-span-2 flex flex-col gap-4">
+        <div className="flex flex-col gap-4 lg:col-span-2">
           {/* Total Revenue */}
           <div className="relative flex-1 overflow-hidden rounded-2xl bg-[#52634c] p-6 text-white">
             <TrendingUp
@@ -318,7 +318,7 @@ export default function FinancePage() {
       </div>
 
       {/* SECTION BASSE — Recent Transactions */}
-      <div className="mt-6 rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+      <div className="mt-6 overflow-x-auto rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
             Recent Transactions
@@ -340,7 +340,7 @@ export default function FinancePage() {
         </div>
 
         {/* Header colonnes */}
-        <div className="grid grid-cols-5 border-b border-[#c4c8be]/50 pb-3">
+        <div className="grid min-w-[640px] grid-cols-5 border-b border-[#c4c8be]/50 pb-3">
           {["Date", "Client", "Transaction ID", "Amount", "Status"].map((h) => (
             <span
               key={h}
@@ -361,7 +361,7 @@ export default function FinancePage() {
             return (
               <div
                 key={tx.id}
-                className="grid grid-cols-5 items-center border-b border-[#f5f3f0] py-4 transition-colors hover:bg-[#fbf9f5]"
+                className="grid min-w-[640px] grid-cols-5 items-center border-b border-[#f5f3f0] py-4 transition-colors hover:bg-[#fbf9f5]"
               >
                 <span className="font-inter text-sm text-[#444841]">
                   {fmtDate(tx.date)}

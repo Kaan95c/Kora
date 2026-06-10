@@ -209,7 +209,7 @@ function AppointmentDrawer({
         }`}
       />
       <aside
-        className={`absolute right-0 top-0 flex h-full w-[440px] flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out ${
+        className={`absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out sm:w-[440px] ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }}
@@ -951,7 +951,7 @@ export default function SchedulerPage() {
           </div>
           <div className="h-10 w-44 rounded-lg bg-[#efeeea]" />
         </div>
-        <div className="grid grid-cols-[1fr_320px] gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
           <div className="h-[560px] rounded-2xl bg-[#efeeea]" />
           <div className="space-y-6">
             <div className="h-64 rounded-2xl bg-[#efeeea]" />
@@ -984,7 +984,7 @@ export default function SchedulerPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-[1fr_320px] items-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_320px]">
         {/* Calendrier */}
         <div className="rounded-2xl bg-white shadow-card">
           {/* Toolbar calendrier */}

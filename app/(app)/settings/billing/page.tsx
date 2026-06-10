@@ -209,7 +209,7 @@ export default function BillingSettingsPage() {
       </section>
 
       {/* Plans disponibles */}
-      <div className="mt-6 grid grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         {PLANS.map((plan) => {
           const isCurrent = plan.key === currentPlan;
           return (

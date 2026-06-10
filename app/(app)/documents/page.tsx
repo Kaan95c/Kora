@@ -224,7 +224,7 @@ function NewDocumentDrawer({
         }`}
       />
       <aside
-        className={`absolute right-0 top-0 flex h-full w-[460px] flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out ${
+        className={`absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out sm:w-[460px] ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }}
@@ -521,7 +521,7 @@ export default function DocumentsPage() {
           </div>
           <div className="h-10 w-40 rounded-lg bg-[#efeeea]" />
         </div>
-        <div className="mb-6 grid grid-cols-4 gap-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="h-24 rounded-2xl bg-[#efeeea]" />
           ))}
@@ -556,7 +556,7 @@ export default function DocumentsPage() {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-4 gap-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
           label="Total Value"
           value={money(stats.totalValue)}
@@ -640,10 +640,10 @@ export default function DocumentsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl bg-white shadow-card">
+      <div className="overflow-x-auto rounded-2xl bg-white shadow-card">
         {/* Header colonnes */}
         <div
-          className="grid items-center gap-4 border-b border-[#c4c8be]/50 px-6 py-3"
+          className="grid min-w-[1040px] items-center gap-4 border-b border-[#c4c8be]/50 px-6 py-3"
           style={{ gridTemplateColumns: GRID }}
         >
           {["Document", "Type", "Client", "Project", "Amount", "Status", "Date", ""].map(
@@ -666,7 +666,7 @@ export default function DocumentsPage() {
           return (
             <div
               key={d.id}
-              className="group grid items-center gap-4 border-b border-[#f5f3f0] px-6 py-3.5 transition-colors last:border-b-0 hover:bg-[#f5f3f0]"
+              className="group grid min-w-[1040px] items-center gap-4 border-b border-[#f5f3f0] px-6 py-3.5 transition-colors last:border-b-0 hover:bg-[#f5f3f0]"
               style={{ gridTemplateColumns: GRID }}
             >
               {/* Document */}
@@ -889,7 +889,7 @@ export default function DocumentsPage() {
             onClick={() => setPayLink(null)}
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
           />
-          <div className="relative w-full max-w-[460px] rounded-2xl bg-white p-6 shadow-modal">
+          <div className="relative mx-4 w-full max-w-[460px] rounded-2xl bg-white p-6 shadow-modal">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
                 Payment link

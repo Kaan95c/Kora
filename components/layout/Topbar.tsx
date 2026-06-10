@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
+  Menu,
   Search,
   Bell,
   HelpCircle,
@@ -26,7 +28,7 @@ function getInitials(fullName?: string | null, email?: string | null) {
   return "?";
 }
 
-export function Topbar() {
+export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -56,9 +58,29 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 px-10">
-      {/* Recherche centrée */}
-      <div className="flex flex-1 justify-center">
+    <header className="flex h-16 shrink-0 items-center gap-3 px-4 md:gap-4 md:px-10">
+      {/* Hamburger + logo (mobile uniquement) */}
+      <div className="flex items-center gap-2 md:hidden">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-low"
+        >
+          <Menu className="h-5 w-5" strokeWidth={1.75} />
+        </button>
+        <Image
+          src="/logo.png"
+          alt="Kora"
+          width={32}
+          height={33}
+          priority
+          className="h-8 w-auto"
+        />
+      </div>
+
+      {/* Recherche centrée (desktop) */}
+      <div className="hidden flex-1 justify-center md:flex">
         <div className="relative w-full max-w-[400px]">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-outline"
@@ -73,25 +95,25 @@ export function Topbar() {
       </div>
 
       {/* Actions à droite */}
-      <div className="flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-3 md:ml-0">
         <button
           type="button"
           aria-label="Notifications"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-low"
+          className="hidden h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-low md:flex"
         >
           <Bell className="h-5 w-5" strokeWidth={1.75} />
         </button>
         <button
           type="button"
           aria-label="Aide"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-low"
+          className="hidden h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-low md:flex"
         >
           <HelpCircle className="h-5 w-5" strokeWidth={1.75} />
         </button>
 
         <button
           type="button"
-          className="font-inter rounded-lg bg-primary px-[18px] py-2.5 text-sm font-medium text-white transition-all duration-150 hover:-translate-y-px hover:shadow-card"
+          className="font-inter hidden rounded-lg bg-primary px-[18px] py-2.5 text-sm font-medium text-white transition-all duration-150 hover:-translate-y-px hover:shadow-card md:block"
         >
           New Project
         </button>

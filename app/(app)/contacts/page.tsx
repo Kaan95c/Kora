@@ -197,7 +197,7 @@ function NewContactDrawer({
       />
       {/* Panneau */}
       <aside
-        className={`absolute right-0 top-0 flex h-full w-[420px] flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out ${
+        className={`absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out sm:w-[420px] ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }}
@@ -495,10 +495,10 @@ export default function ContactsPage() {
       </div>
 
       {/* Tableau */}
-      <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+      <div className="overflow-x-auto rounded-2xl bg-white shadow-card">
         {/* En-tête colonnes */}
         <div
-          className="grid items-center gap-4 border-b border-[#c4c8be]/50 px-6 py-3"
+          className="grid min-w-[860px] items-center gap-4 border-b border-[#c4c8be]/50 px-6 py-3"
           style={{ gridTemplateColumns: GRID }}
         >
           {["Name", "Email", "Phone", "Status", "Tags", "Added", ""].map(
@@ -518,7 +518,7 @@ export default function ContactsPage() {
           <div
             key={c.id}
             onClick={() => router.push(`/contacts/${c.id}`)}
-            className="group grid cursor-pointer items-center gap-4 border-b border-[#f5f3f0] px-6 py-3.5 transition-colors last:border-b-0 hover:bg-[#f5f3f0]"
+            className="group grid min-w-[860px] cursor-pointer items-center gap-4 border-b border-[#f5f3f0] px-6 py-3.5 transition-colors last:border-b-0 hover:bg-[#f5f3f0]"
             style={{ gridTemplateColumns: GRID }}
           >
             {/* Nom + avatar */}

@@ -222,7 +222,7 @@ function ComposeModal({
       />
       <form
         onSubmit={send}
-        className="relative w-full max-w-[480px] rounded-2xl bg-white p-6 shadow-modal"
+        className="relative mx-4 w-full max-w-[480px] rounded-2xl bg-white p-6 shadow-modal"
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
@@ -437,9 +437,9 @@ export default function InboxPage() {
   }, [detail]);
 
   return (
-    <div className="flex h-[calc(100vh-8.5rem)] overflow-hidden rounded-2xl border border-[#c4c8be]/50 bg-white shadow-card">
+    <div className="flex h-[calc(100vh-8.5rem)] flex-col overflow-hidden rounded-2xl border border-[#c4c8be]/50 bg-white shadow-card md:flex-row">
       {/* ───────── Colonne gauche ───────── */}
-      <div className="flex w-[320px] shrink-0 flex-col border-r border-[#c4c8be]/40">
+      <div className="flex w-full shrink-0 flex-col border-b border-[#c4c8be]/40 max-md:h-[45%] md:w-[320px] md:border-b-0 md:border-r">
         <div className="flex items-center justify-between px-4 pb-3 pt-4">
           <h1 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
             Inbox

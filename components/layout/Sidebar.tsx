@@ -42,7 +42,13 @@ const settingsNav: NavItem = {
   icon: Settings,
 };
 
-function NavLink({ item }: { item: NavItem }) {
+function NavLink({
+  item,
+  onNavigate,
+}: {
+  item: NavItem;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const active =
     pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -51,6 +57,7 @@ function NavLink({ item }: { item: NavItem }) {
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       className={cn(
         "font-inter flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
         active
@@ -70,10 +77,31 @@ function NavLink({ item }: { item: NavItem }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({
+  open = false,
+  onClose,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+}) {
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col border-r border-outline-variant/50 bg-background">
-      {/* Logo */}
+    <>
+      {/* Backdrop (mobile, sidebar ouverte) */}
+      {open && (
+        <div
+          onClick={onClose}
+          aria-hidden="true"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+        />
+      )}
+
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-[220px] shrink-0 flex-col border-r border-outline-variant/50 bg-background transition-transform duration-200 md:static md:z-auto md:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {/* Logo */}
       <div className="px-5 pb-4 pt-6">
         <Image
           src="/logo.png"
@@ -91,12 +119,12 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-0.5 px-3">
         {mainNav.map((item) => (
-          <NavLink key={item.href} item={item} />
+          <NavLink key={item.href} item={item} onNavigate={onClose} />
         ))}
 
         <div className="my-2 border-t border-outline-variant/50" />
 
-        <NavLink item={settingsNav} />
+        <NavLink item={settingsNav} onNavigate={onClose} />
       </nav>
 
       {/* Quick Action */}
@@ -109,6 +137,7 @@ export function Sidebar() {
           Quick Action
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

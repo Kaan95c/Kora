@@ -354,7 +354,7 @@ export default function ProjectsPage() {
             <div key={i} className="h-8 w-24 rounded-full bg-[#efeeea]" />
           ))}
         </div>
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-64 rounded-2xl bg-[#efeeea]" />
           ))}
@@ -443,7 +443,7 @@ export default function ProjectsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {visible.map((p, i) => (
               <ProjectCard key={p.id} project={p} index={i} />
             ))}

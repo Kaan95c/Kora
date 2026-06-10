@@ -20,10 +20,10 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex gap-8">
+    <div className="flex flex-col gap-6 md:flex-row md:gap-8">
       {/* Sous-navigation */}
-      <aside className="w-[180px] shrink-0">
-        <nav className="flex flex-col gap-1">
+      <aside className="w-full shrink-0 md:w-[180px]">
+        <nav className="flex flex-row gap-1 overflow-x-auto md:flex-col">
           {NAV.map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
@@ -32,7 +32,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "font-inter flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                  "font-inter flex shrink-0 items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-on-surface-variant hover:bg-primary/[0.06]"
