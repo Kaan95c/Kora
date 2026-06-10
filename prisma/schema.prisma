@@ -14,8 +14,8 @@ datasource db {
 
 enum Plan {
   FREE
+  STARTER
   PRO
-  BUSINESS
 }
 
 enum ContactStatus {
@@ -116,6 +116,15 @@ model Company {
   phone         String?
   email         String?
   ownerId       String?  @unique
+
+  // Abonnement SaaS Stripe (le studio paie Kora). Renseigné via webhook.
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  subscriptionStatus   String? // active | trialing | past_due | canceled | incomplete…
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

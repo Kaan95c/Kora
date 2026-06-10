@@ -17,7 +17,9 @@
     "ensure:bucket": "dotenv -e .env.local -- tsx lib/ensure-logos-bucket.ts",
     "db:seed-messages": "dotenv -e .env.local -- tsx lib/seed-messages.ts",
     "db:seed-automations": "dotenv -e .env.local -- tsx lib/seed-automations.ts",
-    "db:seed-line-items": "dotenv -e .env.local -- tsx lib/seed-line-items.ts"
+    "db:seed-line-items": "dotenv -e .env.local -- tsx lib/seed-line-items.ts",
+    "db:reset-prod": "dotenv -e .env.local -- tsx lib/reset-prod.ts",
+    "db:create-admin": "dotenv -e .env.local -- tsx lib/create-admin.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -2,7 +2,7 @@
 
 > **Référence d'état du projet.** À lire en début de chaque session Claude Code.
 > SaaS de gestion client pour freelances/agences créatives (alternative FR à HoneyBook).
-> **Dernière mise à jour : 2026-06-10 — étapes 1 à 15 terminées (9 pages + Supabase + Stripe + PDF + Resend + **portail client**). Prochaine : Google OAuth / abonnements SaaS.**
+> **Dernière mise à jour : 2026-06-10 — étape 16 : MISE EN PRODUCTION (Vercel) ✅. Reset de la base de prod (fausses données supprimées) + **compte admin réel** créé. Étapes 1 à 15 = 9 pages + Supabase + Stripe + PDF + Resend + portail client. Prochaine : webhook Stripe prod + Google OAuth / abonnements SaaS.**
 > Voir aussi `CLAUDE.md` (design system + conventions).
 
 ---
@@ -26,12 +26,19 @@
 | Étape 13 — Génération PDF des factures (`@react-pdf/renderer`) | ✅ Fait |
 | Étape 14 — Resend (emails réels : facture, reçu, inbox) | ✅ Fait |
 | Étape 15 — Portail client (`/client/[token]`, lien signé HMAC, lecture seule) | ✅ Fait |
-| Étapes suivantes | ⏳ Google OAuth, **abonnements SaaS Stripe** (Billing réel), relances auto |
+| Étape 16 — **Mise en production (Vercel)** + reset prod + compte admin réel | ✅ Fait |
+| Étapes suivantes | ⏳ Webhook Stripe prod, Google OAuth, **abonnements SaaS Stripe** (Billing réel), relances auto |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
 **Les 9 pages sont complètes et branchées aux vraies données — plus aucun placeholder.** 🎉
 **Intégrations faites : Supabase (auth + Storage), Stripe (paiement client + webhook), PDF factures (`@react-pdf/renderer`), Resend (emails réels), portail client public.** → **15 étapes terminées.**
 **Portail client (`/client/[token]`) : espace public en lecture seule (overview + documents/factures + paiements + RDV), branding studio dynamique, lien signé HMAC stateless (pas de migration DB, pas de compte côté client), réutilise `/pay` + le PDF public gated PAID.**
+
+**🚀 EN PRODUCTION (étape 16) : déployé sur Vercel → https://kora-nine-topaz.vercel.app (repo `github.com/Kaan95c/Kora`, branche `main`).**
+**Base de prod **réinitialisée** via `npm run db:reset-prod` (plus aucune donnée de démo). **Compte admin réel** créé via `npm run db:create-admin` : `kaantekten958@gmail.com` → studio **"Kora Studio"** (plan PRO).**
+**⚠️ Le compte de test `test@kora.fr` et les données seed "Boutique Studio" N'EXISTENT PLUS (supprimés par le reset, base partagée dev=prod). Pour re-peupler du dev, recréer un compte via `/register` ou relancer les scripts seed.**
+
+**💳 STRIPE EN MODE LIVE (argent réel) depuis le 2026-06-10 : `STRIPE_SECRET_KEY=sk_live_…`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_…`, `STRIPE_WEBHOOK_SECRET=whsec_…` (endpoint **Live**), redeploy Vercel fait. → Les paiements clients sur `/pay/[id]` encaissent de VRAIES CB. La carte de test `4242…` ne marche plus en prod.**
 
 ---
 
@@ -56,7 +63,7 @@
 | dotenv-cli, tsx | dev | Scripts Prisma/seed (CLI ne lit pas `.env.local`). |
 | Fonts | Manrope + Inter | `next/font/google` dans `app/layout.tsx`. |
 
-✅ **Stripe installé** (`stripe` ^22 + `@stripe/stripe-js` + `@stripe/react-stripe-js`) — **paiement client opérationnel** (clés **test** dans `.env.local`). Abonnements SaaS pas encore.
+✅ **Stripe installé** (`stripe` ^22 + `@stripe/stripe-js` + `@stripe/react-stripe-js`) — **paiement client opérationnel en LIVE** (clés **`sk_live_`/`pk_live_`** + webhook **Live** sur Vercel). ⚠️ **Argent réel** : la carte de test `4242…` ne fonctionne plus, ce sont de vraies CB. Abonnements SaaS pas encore.
 
 ---
 
@@ -281,18 +288,21 @@ npm run db:generate  # régénérer le client Prisma
 - Un fichier **`route.ts`** n'autorise **que** les exports handler (`GET`/`POST`/…) + config → mettre tout helper partagé dans un `lib/*-server.ts` (sinon build casse).
 
 ### Variables d'environnement (`.env.local`)
-- ✅ Renseignées : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, + **Stripe (test)** : `STRIPE_SECRET_KEY` (`sk_test_`), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_`), `STRIPE_WEBHOOK_SECRET` (`whsec_`).
+- ✅ Renseignées : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, + **Stripe (LIVE en prod)** : `STRIPE_SECRET_KEY` (`sk_live_`), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_live_`), `STRIPE_WEBHOOK_SECRET` (`whsec_` de l'endpoint **Live**). *(En local/dev, garder des clés `sk_test_` dans `.env.local` pour ne pas encaisser pour de vrai.)*
 - ✅ + **Resend (test)** : `RESEND_API_KEY` (`re_`), `RESEND_FROM` (`Kora <onboarding@resend.dev>` en sandbox), `RESEND_TEST_EMAIL` (redirige tous les emails vers cette adresse en sandbox).
 - ⛔ Plus aucune clé vide. *(Pour la prod : vérifier un domaine Resend + `RESEND_FROM` du domaine, supprimer `RESEND_TEST_EMAIL`.)*
-- 🔌 **Stripe en local** : lancer `stripe listen --forward-to localhost:3000/api/webhooks/stripe` (terminal séparé) — c'est lui qui relaie les events → sans ça, le Document ne passe pas PAID. Carte test `4242 4242 4242 4242`.
+- 🔌 **Stripe en local** : lancer `stripe listen --forward-to localhost:3000/api/webhooks/stripe` (terminal séparé) — c'est lui qui relaie les events → sans ça, le Document ne passe pas PAID. Carte test `4242 4242 4242 4242` **uniquement en mode test (local)** ; ⚠️ **en prod = LIVE**, vraies CB seulement.
 - 🗂️ **Supabase Storage** : bucket public **`logos`** (créé via `npm run ensure:bucket`, ou à la volée par `/api/settings/logo`) — utilisé par l'upload de logo (Branding).
 - 🔑 **`CLIENT_PORTAL_SECRET`** (étape 15, **optionnel**) : secret HMAC des liens du portail client. Non défini → repli sur `SUPABASE_SERVICE_ROLE_KEY` (fonctionne tel quel en dev). **En prod : poser une valeur dédiée** — sinon roter la service_role key casserait tous les liens portail déjà partagés.
 
-### Compte de test
-- **Email** : `test@kora.fr` — **Mot de passe** : `Test1234!`
-- Owner de la company **"Boutique Studio"** (plan PRO) → voit toutes les données seed.
+### Compte admin (production) — depuis l'étape 16
+- **Email** : `kaantekten958@gmail.com` — mot de passe défini à la création (`db:create-admin`, non stocké ici).
+- Owner de la company **"Kora Studio"** (plan PRO), **base vide** (aucune donnée de démo).
 
-### Données seed (Boutique Studio)
+### ⚠️ Compte de test `test@kora.fr` — SUPPRIMÉ (étape 16)
+- Le reset prod (`db:reset-prod`) a supprimé `test@kora.fr` / `Test1234!` **et** toutes les données seed. **N'existe plus** (base partagée dev=prod). Conservé ici pour mémoire des scripts/seed historiques.
+
+### Données seed (Boutique Studio) — HISTORIQUE (supprimées par le reset)
 1 company · 4 contacts (Elena CLIENT/VIP · Marcus CLIENT · Sophie PROSPECT · James LEAD ; enrichis phone/company/address/notes) · 3 projects (tous ACTIVE) · 4 documents · 3 payments (2 PAID = 4250+1200, 1 PENDING = 3200) · 3 appointments · 3 tasks (2 HIGH) · 3 session types (Discovery Call/Strategy Session/Project Review) · 6 messages de démo (Elena ×3 out, Marcus ×2 in non lus, Sophie ×1 out — via `db:seed-messages`) · 3 automations (Welcome New Lead, Contract Follow-up, Overdue Invoice Alert — via `db:seed-automations`) · 3 line items sur FAC-2025-001 (via `db:seed-line-items`, total → 2940 € TTC).
 
 ### Conventions (rappel `CLAUDE.md`)

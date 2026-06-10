@@ -23,6 +23,11 @@ export type Company = {
   address?: string | null;
   phone?: string | null;
   email?: string | null;
+  // Abonnement SaaS (sérialisé en JSON → dates en string ISO).
+  stripeCustomerId?: string | null;
+  subscriptionStatus?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd?: boolean;
 } | null;
 
 export type AuthContextValue = {

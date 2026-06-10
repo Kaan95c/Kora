@@ -1,34 +1,32 @@
 "use client";
 
-import { useMemo } from "react";
-import { Check, Download } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 
 import { useAuth } from "@/lib/hooks/useAuth";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 
-type Plan = {
-  key: string;
+type PlanCard = {
+  key: "FREE" | "STARTER" | "PRO";
   name: string;
   price: string;
   period: string;
   features: string[];
-  cta: string;
   highlight?: boolean;
 };
 
-const PLANS: Plan[] = [
+const PLANS: PlanCard[] = [
   {
     key: "FREE",
     name: "Free",
     price: "€0",
     period: "forever",
     features: [
-      "Up to 3 clients",
-      "1 active project",
-      "Basic invoicing",
-      "Community support",
+      "3 projects",
+      "5 contacts",
+      "3 documents / invoices",
+      "No automations",
+      "No client portal",
     ],
-    cta: "Current plan",
   },
   {
     key: "STARTER",
@@ -36,12 +34,13 @@ const PLANS: Plan[] = [
     price: "€19",
     period: "/ month",
     features: [
-      "Unlimited clients",
-      "10 active projects",
-      "Invoices & quotes",
+      "15 projects",
+      "50 contacts",
+      "30 documents",
+      "3 automations",
+      "Client portal included",
       "Email support",
     ],
-    cta: "Upgrade",
   },
   {
     key: "PRO",
@@ -49,34 +48,100 @@ const PLANS: Plan[] = [
     price: "€39",
     period: "/ month",
     features: [
-      "Everything in Starter",
       "Unlimited projects",
-      "Branded client portal",
-      "Automations & priority support",
+      "Unlimited contacts",
+      "Unlimited documents",
+      "Unlimited automations",
+      "Client portal included",
+      "Custom PDF with your logo",
+      "Priority support",
     ],
-    cta: "Upgrade",
     highlight: true,
   },
 ];
 
-const INVOICES = [
-  { date: "May 1, 2026", plan: "Pro", amount: "€39.00", status: "Paid" },
-  { date: "Apr 1, 2026", plan: "Pro", amount: "€39.00", status: "Paid" },
-  { date: "Mar 1, 2026", plan: "Pro", amount: "€39.00", status: "Paid" },
-];
+const ACTIVE_STATUSES = ["active", "trialing", "past_due"];
 
 export default function BillingSettingsPage() {
   const { company } = useAuth();
   const currentPlan = (company?.plan ?? "FREE").toUpperCase();
+  const subscribed = ACTIVE_STATUSES.includes(company?.subscriptionStatus ?? "");
+  const hasCustomer = Boolean(company?.stripeCustomerId);
 
-  const renewLabel = useMemo(() => {
-    const d = new Date(new Date().getFullYear() + 1, 0, 1);
-    return d.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+  const [busy, setBusy] = useState(false);
+  const [flash, setFlash] = useState<"success" | "cancel" | null>(null);
+
+  // Bannière de retour depuis Stripe (?status=success|cancel) — lecture client-only.
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get("status");
+    if (status === "success") setFlash("success");
+    else if (status === "cancel") setFlash("cancel");
   }, []);
+
+  const periodEnd = company?.currentPeriodEnd
+    ? new Date(company.currentPeriodEnd)
+    : null;
+  const periodLabel = periodEnd
+    ? periodEnd.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+
+  let statusLine = "You're on the Free plan.";
+  if (currentPlan !== "FREE") {
+    if (company?.cancelAtPeriodEnd && periodLabel) {
+      statusLine = `Your plan ends on ${periodLabel}.`;
+    } else if (company?.subscriptionStatus === "past_due") {
+      statusLine = "Payment past due — please update your card in the portal.";
+    } else if (periodLabel) {
+      statusLine = `Your plan renews on ${periodLabel}.`;
+    } else {
+      statusLine = "Subscription active.";
+    }
+  }
+
+  async function redirectTo(endpoint: string, payload?: Record<string, string>) {
+    setBusy(true);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload ? JSON.stringify(payload) : undefined,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url as string;
+        return;
+      }
+      alert(data.error ?? "Something went wrong. Please try again.");
+    } catch {
+      alert("Network error. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const startCheckout = (plan: "STARTER" | "PRO") =>
+    redirectTo("/api/billing/checkout", { plan });
+  const openPortal = () => redirectTo("/api/billing/portal");
+
+  function ctaLabel(plan: PlanCard) {
+    if (plan.key === currentPlan) return "Current plan";
+    if (plan.key === "FREE") return "Switch to Free";
+    return subscribed ? `Switch to ${plan.name}` : `Choose ${plan.name}`;
+  }
+
+  function onCardClick(plan: PlanCard) {
+    if (plan.key === currentPlan) return;
+    // Free downgrade, ou changement de plan d'un abonné existant → Portal.
+    if (plan.key === "FREE" || subscribed) {
+      openPortal();
+      return;
+    }
+    startCheckout(plan.key);
+  }
 
   return (
     <div>
@@ -84,8 +149,33 @@ export default function BillingSettingsPage() {
         Billing &amp; Plan
       </h1>
       <p className="font-inter mt-1 text-sm text-[#444841]">
-        Manage your subscription and download past invoices.
+        Manage your subscription and payment details.
       </p>
+
+      {flash && (
+        <div
+          className={`font-inter mt-5 flex items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm ${
+            flash === "success"
+              ? "border-[#52634c]/30 bg-[#d5e8cb]/40 text-[#3b4b36]"
+              : "border-[#c4c8be]/60 bg-[#f5f3f0] text-[#444841]"
+          }`}
+        >
+          <span>
+            {flash === "success"
+              ? "✅ Subscription confirmed. It can take a few seconds to update — refresh if needed."
+              : "Checkout canceled — no changes were made."}
+          </span>
+          {flash === "success" && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="shrink-0 rounded-lg bg-[#52634c] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-95"
+            >
+              Refresh
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Plan actuel */}
       <section className="relative mt-6 overflow-hidden rounded-2xl bg-[#52634c] p-6 text-white">
@@ -100,22 +190,21 @@ export default function BillingSettingsPage() {
               </span>
             </div>
             <p className="font-manrope mt-2 text-2xl font-semibold">
-              You&apos;re on the {currentPlan.charAt(0) + currentPlan.slice(1).toLowerCase()} plan
+              You&apos;re on the{" "}
+              {currentPlan.charAt(0) + currentPlan.slice(1).toLowerCase()} plan
             </p>
-            <p className="font-inter mt-1 text-sm text-white/80">
-              Your plan renews on {renewLabel}.
-            </p>
+            <p className="font-inter mt-1 text-sm text-white/80">{statusLine}</p>
           </div>
-          <button
-            type="button"
-            title="Coming soon"
-            className="font-inter flex shrink-0 items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-[#52634c] transition-all hover:-translate-y-px hover:opacity-95"
-          >
-            Manage subscription
-            <span className="rounded-full bg-[#52634c]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#52634c]">
-              Soon
-            </span>
-          </button>
+          {hasCustomer && (
+            <button
+              type="button"
+              onClick={openPortal}
+              disabled={busy}
+              className="font-inter flex shrink-0 items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-[#52634c] transition-all hover:-translate-y-px hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Manage subscription
+            </button>
+          )}
         </div>
       </section>
 
@@ -173,79 +262,43 @@ export default function BillingSettingsPage() {
 
               <button
                 type="button"
-                disabled={isCurrent}
-                title={isCurrent ? undefined : "Coming soon"}
-                className={`font-inter mt-6 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
+                disabled={isCurrent || busy}
+                onClick={() => onCardClick(plan)}
+                className={`font-inter mt-6 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed ${
                   isCurrent
-                    ? "cursor-default border border-[#c4c8be] bg-[#f5f3f0] text-[#747870]"
+                    ? "border border-[#c4c8be] bg-[#f5f3f0] text-[#747870]"
                     : plan.highlight
-                    ? "bg-[#52634c] text-white hover:-translate-y-px hover:opacity-95"
-                    : "border border-[#52634c] text-[#52634c] hover:bg-[#d5e8cb]/40"
+                    ? "bg-[#52634c] text-white hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
+                    : "border border-[#52634c] text-[#52634c] hover:bg-[#d5e8cb]/40 disabled:opacity-60"
                 }`}
               >
-                {isCurrent ? "Current plan" : plan.cta}
-                {!isCurrent && (
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                      plan.highlight
-                        ? "bg-white/20 text-white"
-                        : "bg-[#52634c]/10 text-[#52634c]"
-                    }`}
-                  >
-                    Soon
-                  </span>
-                )}
+                {ctaLabel(plan)}
               </button>
             </div>
           );
         })}
       </div>
 
-      {/* Invoices */}
-      <section className="mt-6 rounded-2xl bg-white p-6 shadow-card">
-        <h2 className="font-manrope text-lg font-semibold text-[#1b1c1a]">
-          Invoices
-        </h2>
-
-        <div className="mt-4">
-          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_auto] gap-4 border-b border-[#c4c8be]/50 pb-3">
-            {["Date", "Plan", "Amount", "Status", ""].map((h, i) => (
-              <span
-                key={i}
-                className="font-inter text-[11px] font-semibold uppercase tracking-wide text-[#444841]"
-              >
-                {h}
-              </span>
-            ))}
-          </div>
-          {INVOICES.map((inv, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-[1.5fr_1fr_1fr_1fr_auto] items-center gap-4 border-b border-[#f5f3f0] py-3.5 last:border-b-0"
-            >
-              <span className="font-inter text-sm text-[#444841]">
-                {inv.date}
-              </span>
-              <span className="font-inter text-sm text-[#444841]">
-                {inv.plan}
-              </span>
-              <span className="font-manrope text-sm font-semibold text-[#1b1c1a]">
-                {inv.amount}
-              </span>
-              <div>
-                <StatusBadge status={inv.status} variant="paid" />
-              </div>
-              <button
-                type="button"
-                title="Coming soon"
-                aria-label="Download invoice"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea]"
-              >
-                <Download className="h-4 w-4" strokeWidth={1.75} />
-              </button>
-            </div>
-          ))}
+      {/* Historique de facturation → portail Stripe */}
+      <section className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-white p-6 shadow-card">
+        <div>
+          <h2 className="font-manrope text-lg font-semibold text-[#1b1c1a]">
+            Billing history
+          </h2>
+          <p className="font-inter mt-1 text-sm text-[#444841]">
+            Invoices, receipts and payment method are managed in the secure
+            Stripe billing portal.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={openPortal}
+          disabled={busy || !hasCustomer}
+          title={hasCustomer ? undefined : "Available once you have a subscription"}
+          className="font-inter shrink-0 rounded-lg border border-[#52634c] px-4 py-2.5 text-sm font-semibold text-[#52634c] transition-all hover:bg-[#d5e8cb]/40 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Open billing portal
+        </button>
       </section>
     </div>
   );
