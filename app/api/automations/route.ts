@@ -7,6 +7,7 @@ import {
   isTrigger,
   buildActionsCreate,
 } from "@/lib/automations-server";
+import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,15 @@ export async function POST(request: Request) {
   }
   if (!isTrigger(body.trigger)) {
     return NextResponse.json({ error: "Invalid trigger" }, { status: 400 });
+  }
+
+  // Gating par plan : nombre d'automatisations (Free = 0 → toujours bloqué).
+  const limit = await checkLimit(company.id, "automations", company.plan);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      planLimitErrorBody("automations", company.plan, limit),
+      { status: 403 }
+    );
   }
 
   const automation = await prisma.automation.create({

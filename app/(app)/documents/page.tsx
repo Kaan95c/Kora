@@ -26,6 +26,9 @@ import {
 } from "lucide-react";
 
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { UsageMeter } from "@/components/shared/UsageMeter";
+import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
+import { useAuth } from "@/lib/hooks/useAuth";
 import {
   TYPE_CONFIG,
   STATUS_CONFIG,
@@ -110,10 +113,12 @@ function NewDocumentDrawer({
   open,
   onClose,
   onCreated,
+  onLimit,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  onLimit: (message: string) => void;
 }) {
   const empty = {
     title: "",
@@ -189,6 +194,11 @@ function NewDocumentDrawer({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (res.status === 403 && data?.code === "PLAN_LIMIT_REACHED") {
+          onLimit(data.error);
+          setSaving(false);
+          return;
+        }
         setError(data.error ?? "Failed to create document.");
         setSaving(false);
         return;
@@ -385,6 +395,8 @@ export default function DocumentsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [limitMsg, setLimitMsg] = useState<string | null>(null);
+  const { limits } = useAuth();
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
     null
   );
@@ -865,6 +877,13 @@ export default function DocumentsPage() {
         </>
       )}
 
+      {/* Compteur d'usage */}
+      <UsageMeter
+        label="documents"
+        current={docs.length}
+        max={limits ? limits.documents : undefined}
+      />
+
       {/* Drawer */}
       <NewDocumentDrawer
         open={drawerOpen}
@@ -873,7 +892,14 @@ export default function DocumentsPage() {
           setDrawerOpen(false);
           loadDocs();
         }}
+        onLimit={(msg) => {
+          setDrawerOpen(false);
+          setLimitMsg(msg);
+        }}
       />
+
+      {/* Modal limite de plan */}
+      <PlanLimitDialog message={limitMsg} onClose={() => setLimitMsg(null)} />
 
       {/* Toast génération du lien */}
       {linkLoading && (

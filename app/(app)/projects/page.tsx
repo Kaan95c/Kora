@@ -19,10 +19,15 @@ import {
   PenTool,
   Sparkles,
   FolderOpen,
+  Plus,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
 import { StatusBadge, type StatusVariant } from "@/components/shared/StatusBadge";
+import { UsageMeter } from "@/components/shared/UsageMeter";
+import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 // ───────────────────────── Types & constantes ─────────────────────────
 
@@ -261,12 +266,222 @@ function KanbanColumn({
   );
 }
 
+// ───────────────────────── Drawer New Project ─────────────────────────
+
+function NewProjectDrawer({
+  open,
+  onClose,
+  onCreated,
+  onLimit,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+  onLimit: (message: string) => void;
+}) {
+  const empty = {
+    name: "",
+    contactId: "",
+    status: "ACTIVE" as ProjectStatus,
+    startDate: "",
+  };
+  const [form, setForm] = useState(empty);
+  const [contacts, setContacts] = useState<{ id: string; label: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setForm(empty);
+    setSaving(false);
+    setError(null);
+    // Charge les contacts (sélecteur client) à l'ouverture.
+    fetch("/api/contacts")
+      .then((r) => r.json())
+      .then((data: { id: string; firstName: string; lastName: string }[]) =>
+        setContacts(
+          Array.isArray(data)
+            ? data.map((c) => ({
+                id: c.id,
+                label: `${c.firstName} ${c.lastName}`,
+              }))
+            : []
+        )
+      )
+      .catch(() => setContacts([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleSave() {
+    if (!form.name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          contactId: form.contactId || null,
+          status: form.status,
+          startDate: form.startDate || null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 403 && data?.code === "PLAN_LIMIT_REACHED") {
+          onLimit(data.error);
+          setSaving(false);
+          return;
+        }
+        setError(data.error ?? "Failed to create project.");
+        setSaving(false);
+        return;
+      }
+      onCreated();
+    } catch {
+      setError("Network error. Please try again.");
+      setSaving(false);
+    }
+  }
+
+  const inputCls =
+    "font-inter w-full rounded-lg border border-[#c4c8be] bg-white px-3 py-2.5 text-sm text-[#1b1c1a] outline-none transition-colors placeholder:text-outline focus:border-[#52634c]";
+  const labelCls =
+    "font-inter mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#444841]";
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
+      aria-hidden={!open}
+    >
+      <div
+        onClick={onClose}
+        className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${
+          open ? "opacity-100" : "opacity-0"
+        }`}
+      />
+      <aside
+        className={`absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out sm:w-[420px] ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+        style={{ borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }}
+      >
+        <div className="flex items-center justify-between border-b border-[#efeeea] px-6 py-5">
+          <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
+            New Project
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
+          >
+            <X className="h-5 w-5" strokeWidth={1.75} />
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
+          <div>
+            <label className={labelCls}>Name</label>
+            <input
+              className={inputCls}
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="Brand identity refresh"
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Client</label>
+            <select
+              className={inputCls}
+              value={form.contactId}
+              onChange={(e) => update("contactId", e.target.value)}
+            >
+              <option value="">— No client —</option>
+              {contacts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelCls}>Stage</label>
+            <select
+              className={inputCls}
+              value={form.status}
+              onChange={(e) =>
+                update("status", e.target.value as ProjectStatus)
+              }
+            >
+              {(["INQUIRY", "FOLLOW_UP", "BOOKING", "ACTIVE"] as ProjectStatus[]).map(
+                (s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelCls}>Start date</label>
+            <input
+              type="date"
+              className={inputCls}
+              value={form.startDate}
+              onChange={(e) => update("startDate", e.target.value)}
+            />
+          </div>
+
+          {error && (
+            <p className="font-inter rounded-lg bg-error-container px-3 py-2 text-sm text-[#93000a]">
+              {error}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-[#efeeea] px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-inter rounded-lg px-4 py-2.5 text-sm font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
 // ───────────────────────── Page ─────────────────────────
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [view, setView] = useState<"list" | "kanban">("list");
   const [filter, setFilter] = useState<ProjectStatus | "ALL">("ALL");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [limitMsg, setLimitMsg] = useState<string | null>(null);
+  const { limits } = useAuth();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -377,31 +592,42 @@ export default function ProjectsPage() {
           </p>
         </div>
 
-        {/* Toggle List / Kanban */}
-        <div className="flex items-center gap-1 rounded-full bg-[#efeeea] p-1">
+        <div className="flex items-center gap-3">
+          {/* Toggle List / Kanban */}
+          <div className="flex items-center gap-1 rounded-full bg-[#efeeea] p-1">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`font-inter flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                view === "list"
+                  ? "bg-white text-[#1b1c1a] shadow-sm"
+                  : "text-[#444841] hover:text-[#1b1c1a]"
+              }`}
+            >
+              <List className="h-4 w-4" strokeWidth={1.75} />
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("kanban")}
+              className={`font-inter flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                view === "kanban"
+                  ? "bg-white text-[#1b1c1a] shadow-sm"
+                  : "text-[#444841] hover:text-[#1b1c1a]"
+              }`}
+            >
+              <LayoutGrid className="h-4 w-4" strokeWidth={1.75} />
+              Kanban
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setView("list")}
-            className={`font-inter flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-              view === "list"
-                ? "bg-white text-[#1b1c1a] shadow-sm"
-                : "text-[#444841] hover:text-[#1b1c1a]"
-            }`}
+            onClick={() => setDrawerOpen(true)}
+            className="font-inter flex items-center gap-2 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
           >
-            <List className="h-4 w-4" strokeWidth={1.75} />
-            List
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("kanban")}
-            className={`font-inter flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-              view === "kanban"
-                ? "bg-white text-[#1b1c1a] shadow-sm"
-                : "text-[#444841] hover:text-[#1b1c1a]"
-            }`}
-          >
-            <LayoutGrid className="h-4 w-4" strokeWidth={1.75} />
-            Kanban
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            New Project
           </button>
         </div>
       </div>
@@ -458,6 +684,30 @@ export default function ProjectsPage() {
           </div>
         </DndContext>
       )}
+
+      {/* Compteur d'usage */}
+      <UsageMeter
+        label="projets"
+        current={projects.length}
+        max={limits ? limits.projects : undefined}
+      />
+
+      {/* Drawer */}
+      <NewProjectDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onCreated={() => {
+          setDrawerOpen(false);
+          loadProjects();
+        }}
+        onLimit={(msg) => {
+          setDrawerOpen(false);
+          setLimitMsg(msg);
+        }}
+      />
+
+      {/* Modal limite de plan */}
+      <PlanLimitDialog message={limitMsg} onClose={() => setLimitMsg(null)} />
     </div>
   );
 }

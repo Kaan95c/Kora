@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,15 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "firstName, lastName and email are required" },
       { status: 400 }
+    );
+  }
+
+  // Gating par plan : nombre de contacts (hors archivés).
+  const limit = await checkLimit(company.id, "contacts", company.plan);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      planLimitErrorBody("contacts", company.plan, limit),
+      { status: 403 }
     );
   }
 

@@ -67,7 +67,7 @@ type ContactDetail = {
   status: ContactStatus;
   tags: string[];
   createdAt: string;
-  portalUrl: string;
+  portalUrl: string | null;
   projects: ContactProject[];
   documents: ContactDocument[];
 };
@@ -628,40 +628,57 @@ export default function ContactDetailPage() {
           Share this private link with {contact.firstName} to view their
           invoices, documents and appointments. No account required.
         </p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <input
-            readOnly
-            value={contact.portalUrl}
-            onFocus={(e) => e.currentTarget.select()}
-            className="font-inter min-w-0 flex-1 truncate rounded-lg border border-[#c4c8be] bg-[#fbf9f5] px-3 py-2.5 text-sm text-[#444841] outline-none focus:border-[#52634c]"
-          />
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => copyPortalLink(contact.portalUrl)}
-              className="font-inter inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
-            >
-              {copied ? (
-                <>
-                  <Check className="h-4 w-4" strokeWidth={2} /> Copied
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4" strokeWidth={2} /> Copy link
-                </>
-              )}
-            </button>
-            <a
-              href={contact.portalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Open client portal"
-              className="font-inter inline-flex items-center justify-center rounded-lg border border-[#c4c8be] px-3 py-2.5 text-sm font-semibold text-[#1b1c1a] transition-colors hover:bg-[#fbf9f5]"
-            >
-              <ExternalLink className="h-4 w-4" strokeWidth={2} />
-            </a>
+
+        {contact.portalUrl ? (
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              readOnly
+              value={contact.portalUrl}
+              onFocus={(e) => e.currentTarget.select()}
+              className="font-inter min-w-0 flex-1 truncate rounded-lg border border-[#c4c8be] bg-[#fbf9f5] px-3 py-2.5 text-sm text-[#444841] outline-none focus:border-[#52634c]"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => copyPortalLink(contact.portalUrl!)}
+                className="font-inter inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4" strokeWidth={2} /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" strokeWidth={2} /> Copy link
+                  </>
+                )}
+              </button>
+              <a
+                href={contact.portalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open client portal"
+                className="font-inter inline-flex items-center justify-center rounded-lg border border-[#c4c8be] px-3 py-2.5 text-sm font-semibold text-[#1b1c1a] transition-colors hover:bg-[#fbf9f5]"
+              >
+                <ExternalLink className="h-4 w-4" strokeWidth={2} />
+              </a>
+            </div>
           </div>
-        </div>
+        ) : (
+          // Plan Free → portail désactivé : encart upgrade.
+          <div className="mt-3 flex flex-col gap-3 rounded-xl border border-[#f8dac5] bg-[#fdf3ea] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-inter text-sm text-[#574333]">
+              Le portail client est inclus à partir du plan{" "}
+              <span className="font-semibold">Starter</span>.
+            </p>
+            <Link
+              href="/settings/billing"
+              className="font-inter shrink-0 rounded-lg bg-[#52634c] px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
+            >
+              Voir les plans
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

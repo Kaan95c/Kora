@@ -24,6 +24,9 @@ import {
   type AutomationTrigger,
   type ActionType,
 } from "@/lib/automations";
+import { UsageMeter } from "@/components/shared/UsageMeter";
+import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 // ───────────────────────── Types ─────────────────────────
 
@@ -114,11 +117,13 @@ function AutomationDrawer({
   editing,
   onClose,
   onSaved,
+  onLimit,
 }: {
   open: boolean;
   editing: Automation | null;
   onClose: () => void;
   onSaved: () => void;
+  onLimit: (message: string) => void;
 }) {
   const [trigger, setTrigger] = useState<AutomationTrigger | null>(null);
   const [actions, setActions] = useState<FormAction[]>([]);
@@ -208,6 +213,9 @@ function AutomationDrawer({
     setSaving(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      if (res.status === 403 && data?.code === "PLAN_LIMIT_REACHED") {
+        return onLimit(data.error);
+      }
       return setError(data.error ?? "Failed to save.");
     }
     onSaved();
@@ -468,6 +476,8 @@ export default function AutomationsPage() {
   const [drawer, setDrawer] = useState<{ open: boolean; editing: Automation | null }>(
     { open: false, editing: null }
   );
+  const [limitMsg, setLimitMsg] = useState<string | null>(null);
+  const { limits } = useAuth();
 
   async function load() {
     try {
@@ -675,6 +685,13 @@ export default function AutomationsPage() {
         </div>
       )}
 
+      {/* Compteur d'usage */}
+      <UsageMeter
+        label="automatisations"
+        current={automations.length}
+        max={limits ? limits.automations : undefined}
+      />
+
       {/* Drawer */}
       <AutomationDrawer
         open={drawer.open}
@@ -684,7 +701,14 @@ export default function AutomationsPage() {
           setDrawer({ open: false, editing: null });
           load();
         }}
+        onLimit={(msg) => {
+          setDrawer({ open: false, editing: null });
+          setLimitMsg(msg);
+        }}
       />
+
+      {/* Modal limite de plan */}
+      <PlanLimitDialog message={limitMsg} onClose={() => setLimitMsg(null)} />
     </div>
   );
 }

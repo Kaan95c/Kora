@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { UsageMeter } from "@/components/shared/UsageMeter";
+import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
+import { useAuth } from "@/lib/hooks/useAuth";
 import {
   STATUS_CONFIG,
   initials,
@@ -102,10 +105,12 @@ function NewContactDrawer({
   open,
   onClose,
   onCreated,
+  onLimit,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  onLimit: (message: string) => void;
 }) {
   const empty = {
     firstName: "",
@@ -167,6 +172,11 @@ function NewContactDrawer({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (res.status === 403 && data?.code === "PLAN_LIMIT_REACHED") {
+          onLimit(data.error);
+          setSaving(false);
+          return;
+        }
         setError(data.error ?? "Failed to create contact.");
         setSaving(false);
         return;
@@ -355,6 +365,8 @@ export default function ContactsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [limitMsg, setLimitMsg] = useState<string | null>(null);
+  const { limits } = useAuth();
 
   async function loadContacts() {
     try {
@@ -646,6 +658,13 @@ export default function ContactsPage() {
         </div>
       )}
 
+      {/* Compteur d'usage (contacts hors archivés) */}
+      <UsageMeter
+        label="contacts"
+        current={contacts.filter((c) => c.status !== "ARCHIVED").length}
+        max={limits ? limits.contacts : undefined}
+      />
+
       {/* Drawer */}
       <NewContactDrawer
         open={drawerOpen}
@@ -654,7 +673,14 @@ export default function ContactsPage() {
           setDrawerOpen(false);
           loadContacts();
         }}
+        onLimit={(msg) => {
+          setDrawerOpen(false);
+          setLimitMsg(msg);
+        }}
       />
+
+      {/* Modal limite de plan */}
+      <PlanLimitDialog message={limitMsg} onClose={() => setLimitMsg(null)} />
     </div>
   );
 }

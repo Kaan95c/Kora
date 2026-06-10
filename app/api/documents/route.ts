@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }
   const status: DocStatus = isStatus(body.status) ? body.status : "DRAFT";
+
+  // Gating par plan : nombre de documents.
+  const limit = await checkLimit(company.id, "documents", company.plan);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      planLimitErrorBody("documents", company.plan, limit),
+      { status: 403 }
+    );
+  }
 
   // Montant : nombre, ou null si vide/invalide.
   let total: number | null = null;

@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
 import { signClientToken, clientPortalPath } from "@/lib/client-portal";
+import { hasClientPortal } from "@/lib/plan-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -80,11 +81,15 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Lien du portail client (token signé, stateless — voir lib/client-portal).
-  const portalUrl =
-    requestOrigin(request) + clientPortalPath(signClientToken(contact.id));
+  // Portail client = fonctionnalité gatée par plan (Free = désactivé).
+  // Lien du portail (token signé, stateless — voir lib/client-portal) seulement
+  // si le plan l'autorise ; sinon portalUrl = null → encart upgrade côté UI.
+  const clientPortal = hasClientPortal(company.plan);
+  const portalUrl = clientPortal
+    ? requestOrigin(request) + clientPortalPath(signClientToken(contact.id))
+    : null;
 
-  return NextResponse.json({ ...contact, portalUrl });
+  return NextResponse.json({ ...contact, portalUrl, clientPortal });
 }
 
 // ───────────────────────── PUT : édition ─────────────────────────

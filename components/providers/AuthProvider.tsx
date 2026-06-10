@@ -30,21 +30,33 @@ export type Company = {
   cancelAtPeriodEnd?: boolean;
 } | null;
 
+// Caps du plan (Infinity → null = illimité), calculés serveur dans /api/auth/me.
+export type PlanLimits = {
+  projects: number | null;
+  contacts: number | null;
+  documents: number | null;
+  automations: number | null;
+  clientPortal: boolean;
+} | null;
+
 export type AuthContextValue = {
   user: User | null;
   company: Company;
+  limits: PlanLimits;
   isLoading: boolean;
 };
 
 export const AuthContext = createContext<AuthContextValue>({
   user: null,
   company: null,
+  limits: null,
   isLoading: true,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [company, setCompany] = useState<Company>(null);
+  const [limits, setLimits] = useState<PlanLimits>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -56,11 +68,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (res.ok) {
           const data = await res.json();
           setCompany(data.company ?? null);
+          setLimits(data.limits ?? null);
         } else {
           setCompany(null);
+          setLimits(null);
         }
       } catch {
         setCompany(null);
+        setLimits(null);
       }
     }
 
@@ -74,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadCompany();
       } else {
         setCompany(null);
+        setLimits(null);
       }
       setIsLoading(false);
     });
@@ -82,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, company, isLoading }}>
+    <AuthContext.Provider value={{ user, company, limits, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

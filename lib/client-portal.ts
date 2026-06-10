@@ -1,6 +1,7 @@
 import crypto from "crypto";
 
 import { prisma } from "@/lib/prisma";
+import { hasClientPortal } from "@/lib/plan-limits";
 
 /**
  * Portail client (étape 15) — accès public par lien/token SIGNÉ (HMAC).
@@ -148,12 +149,18 @@ export async function getPortalData(token: string): Promise<PortalData | null> {
           email: true,
           phone: true,
           address: true,
+          plan: true,
         },
       },
     },
   });
 
   if (!contact || contact.status === "ARCHIVED") return null;
+
+  // Portail désactivé sur le plan Free → lien invalide (même les liens déjà
+  // partagés cessent de fonctionner si la company repasse en Free).
+  const { plan, ...company } = contact.company;
+  if (!hasClientPortal(plan)) return null;
 
   const [documents, payments, appointments, projects] = await Promise.all([
     prisma.document.findMany({
@@ -223,7 +230,7 @@ export async function getPortalData(token: string): Promise<PortalData | null> {
       email: contact.email,
       companyName: contact.companyName,
     },
-    company: contact.company,
+    company,
     documents,
     payments,
     appointments,

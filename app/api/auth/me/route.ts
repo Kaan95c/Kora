@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAuthedCompany } from "@/lib/auth";
+import { planLimitsForClient } from "@/lib/plan-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -22,5 +23,6 @@ export async function GET() {
       user_metadata: user.user_metadata,
     },
     company,
+    limits: company ? planLimitsForClient(company.plan) : null,
   });
 }
