@@ -718,13 +718,13 @@ export function LandingPage() {
               <h4>Légal</h4>
               <ul>
                 <li>
-                  <a href="#">Mentions légales</a>
+                  <Link href="/legal/mentions">Mentions légales</Link>
                 </li>
                 <li>
-                  <a href="#">Confidentialité</a>
+                  <Link href="/legal/privacy">Confidentialité</Link>
                 </li>
                 <li>
-                  <a href="#">CGV</a>
+                  <Link href="/legal/cgv">CGV</Link>
                 </li>
               </ul>
             </div>
