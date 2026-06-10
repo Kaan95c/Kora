@@ -22,18 +22,3 @@ export function LegalProse({ children }: { children: ReactNode }) {
     </article>
   );
 }
-
-/** Encart d'avertissement : ce sont des modèles à faire valider / compléter. */
-export function LegalDisclaimer() {
-  return (
-    <div className="mt-6 rounded-xl border border-[#f8dac5] bg-[#fdf3ea] px-4 py-3 text-sm text-[#574333]">
-      <strong className="font-semibold">Modèle à finaliser.</strong> Ce document
-      est un modèle de départ. Faites-le relire par un professionnel du droit et
-      remplacez les champs notés{" "}
-      <span className="rounded bg-white/70 px-1 font-mono text-[13px]">
-        [À COMPLÉTER]
-      </span>{" "}
-      avant toute mise en production.
-    </div>
-  );
-}
