@@ -2,8 +2,31 @@
 
 > **Référence d'état du projet.** À lire en début de chaque session Claude Code.
 > SaaS de gestion client pour freelances/agences créatives (alternative FR à HoneyBook).
-> **Dernière mise à jour : 2026-06-11 — étape 22 : GOOGLE OAUTH (login/register + onboarding dans `/auth/callback`). Avant : étape 21 = PAGES LÉGALES (`/legal/cgv|privacy|mentions`) + bandeau cookies. Avant : étape 20 = GATING / QUOTAS PAR PLAN ENFORCÉ (`lib/plan-limits.ts`). Avant : étapes 16→18 = MISE EN PRODUCTION (Vercel) + Stripe LIVE + **abonnements SaaS** (Checkout/Portal) + **responsive mobile complet**. Étapes 1 à 15 = 9 pages + Supabase + Stripe + PDF + Resend + portail client. Prochaine : Google OAuth + gating par plan + légal (CGV/RGPD).**
+> **Dernière mise à jour : 2026-06-11 — étape 22 : GOOGLE OAUTH (login/register + onboarding dans `/auth/callback`). Avant : étape 21 = PAGES LÉGALES (`/legal/cgv|privacy|mentions`) + bandeau cookies. Avant : étape 20 = GATING / QUOTAS PAR PLAN ENFORCÉ (`lib/plan-limits.ts`). Avant : étapes 16→18 = MISE EN PRODUCTION (Vercel) + Stripe LIVE + **abonnements SaaS** (Checkout/Portal) + **responsive mobile complet**. Étapes 1 à 15 = 9 pages + Supabase + Stripe + PDF + Resend + portail client. Prochaine : Forgot password, onboarding (wizard), recherche Topbar, relances auto.**
 > Voir aussi `CLAUDE.md` (design system + conventions).
+
+---
+
+## 📅 Journal — Session du 2026-06-11
+
+**✅ Terminé aujourd'hui**
+- **Google OAuth** (login + register + onboarding dans `/auth/callback`) — étape 22
+- **Pages légales** (CGV, RGPD/confidentialité, mentions légales) — étape 21
+- **Bandeau cookies** (cookies essentiels) — étape 21
+- **Gating par plan FREE / STARTER / PRO** enforcé (`lib/plan-limits.ts`) — étape 20
+- **New Project drawer** câblé (+ `POST /api/projects`) — étape 20
+- **Domaine custom `app.kora-app.fr`** (remplace `kora-nine-topaz.vercel.app`)
+- **Resend vérifié** sur `hello@kora-app.fr` (`RESEND_FROM`, plus de sandbox) + **redirection email `hello@` → Gmail**
+- **Stripe Live validé** — **vrai paiement de 19€ testé** end-to-end
+- **Responsive mobile complet** — étape 18
+- **Landing page** intégrée avec les **vrais tarifs** (FREE 0€ / STARTER 19€ / PRO 39€) — étape 19
+
+**⏳ Prochaine session — à faire**
+- **Forgot password** — *tout est à créer* : `/forgot-password` (`resetPasswordForEmail`) + `/auth/reset-password` (`updateUser`) + câbler le bouton « Forgot password? » du login + ajouter l'URL de reset dans les Redirect URLs Supabase
+- **Onboarding nouveaux inscrits** (wizard)
+- **Recherche Topbar** (câblage réel)
+- **Relances automatiques** (Automations → Resend, envois différés + déclencheur cron/queue)
+- **Inbox master/détail mobile** (UX dédiée < md)
 
 ---
 
@@ -33,7 +56,7 @@
 | Étape 20 — **Gating / quotas par plan ENFORCÉ** (`lib/plan-limits.ts` : `checkLimit`, 403 sur POST projects/contacts/documents/automations + portail Free désactivé ; toast upsell + compteurs d'usage) | ✅ Fait |
 | Étape 21 — **Pages légales + bandeau cookies** (`/legal/cgv` · `/legal/privacy` · `/legal/mentions` ; bandeau cookies essentiels ; liens dans le footer landing) | ✅ Fait |
 | Étape 22 — **Google OAuth** (boutons « Continue with Google » sur `/login` + `/register` ; onboarding OAuth dans `/auth/callback` : crée Company+User au 1er login) | ✅ Fait |
-| Étapes suivantes | ⏳ Relances auto (automations + cron) |
+| Étapes suivantes | ⏳ Forgot password, onboarding (wizard), recherche Topbar, relances auto (automations + cron), Inbox master/détail mobile |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
 **Les 9 pages sont complètes et branchées aux vraies données — plus aucun placeholder.** 🎉
