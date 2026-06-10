@@ -38,7 +38,7 @@
 **Intégrations faites : Supabase (auth + Storage), Stripe (paiement client + webhook), PDF factures (`@react-pdf/renderer`), Resend (emails réels), portail client public.** → **15 étapes terminées.**
 **Portail client (`/client/[token]`) : espace public en lecture seule (overview + documents/factures + paiements + RDV), branding studio dynamique, lien signé HMAC stateless (pas de migration DB, pas de compte côté client), réutilise `/pay` + le PDF public gated PAID.**
 
-**🚀 EN PRODUCTION (étape 16) : déployé sur Vercel → https://kora-nine-topaz.vercel.app (repo `github.com/Kaan95c/Kora`, branche `main`).**
+**🚀 EN PRODUCTION (étape 16) : déployé sur Vercel → https://app.kora-app.fr (domaine custom ; repo `github.com/Kaan95c/Kora`, branche `main`).**
 **Base de prod **réinitialisée** via `npm run db:reset-prod` (plus aucune donnée de démo). **Compte admin réel** créé via `npm run db:create-admin` : `kaantekten958@gmail.com` → studio **"Kora Studio"** (plan PRO).**
 **⚠️ Le compte de test `test@kora.fr` et les données seed "Boutique Studio" N'EXISTENT PLUS (supprimés par le reset, base partagée dev=prod). Pour re-peupler du dev, recréer un compte via `/register` ou relancer les scripts seed.**
 
