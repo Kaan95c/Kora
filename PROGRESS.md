@@ -11,7 +11,8 @@
 
 **✅ Terminé aujourd'hui**
 - **Sécurisation complète (étape 25, 9 volets)** : RLS SQL · Zod + DOMPurify · CORS + security headers · rate limiting Upstash · OTP 30 min · pages erreur/404 + `withApi` sur 33 routes · index composites DB · logger JSON · Sentry
-- **⚠️ Restes côté user (Phase 0)** : créer comptes **Upstash** + **Sentry** (env), exécuter `security/rls-policies.sql` dans Supabase, régler **OTP = 1800 s**
+- **✅ Phase 0 (user) FAITE** : Upstash (env local + Vercel) · Sentry (DSN + token + org/project, local + Vercel) · `security/rls-policies.sql` exécuté · OTP = 1800 s
+- **✅ Sentry actif** : événements tagués `kind=stripe_webhook` (échec webhook) et `kind=rate_limit` (pic) ajoutés → 3 alertes configurables (voir plus bas)
 - **Recherche Topbar fonctionnelle** (modal ⌘K + `GET /api/search` + résultats groupés) — étape 24
 - **Liens Dashboard câblés** (View All / View Full Calendar / CTA tâches urgentes) — étape 24
 - **Menu Quick Action** (Sidebar → New Project/Contact/Document/RDV via `?new=1`) — étape 24
@@ -348,11 +349,12 @@ npm run db:generate  # régénérer le client Prisma
 - 🔌 **Stripe en local** : lancer `stripe listen --forward-to localhost:3000/api/webhooks/stripe` (terminal séparé) — c'est lui qui relaie les events → sans ça, le Document ne passe pas PAID. Carte test `4242 4242 4242 4242` **uniquement en mode test (local)** ; ⚠️ **en prod = LIVE**, vraies CB seulement.
 - 🗂️ **Supabase Storage** : bucket public **`logos`** (créé via `npm run ensure:bucket`, ou à la volée par `/api/settings/logo`) — utilisé par l'upload de logo (Branding).
 - 🔑 **`CLIENT_PORTAL_SECRET`** (étape 15, **optionnel**) : secret HMAC des liens du portail client. Non défini → repli sur `SUPABASE_SERVICE_ROLE_KEY` (fonctionne tel quel en dev). **En prod : poser une valeur dédiée** — sinon roter la service_role key casserait tous les liens portail déjà partagés.
-- 🛡️ **Sécurité (étape 25, à renseigner — sinon fail-open / no-op)** :
-  - **Upstash (rate limiting)** : `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`. Absents → rate-limit désactivé (laisse passer).
-  - **Sentry (monitoring)** : `NEXT_PUBLIC_SENTRY_DSN` (active le runtime), `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT` (source maps au build via `withSentryConfig`). DSN absent → Sentry no-op.
-  - **RLS** : exécuter `security/rls-policies.sql` dans Supabase SQL Editor (pas une variable d'env, mais requis pour fermer l'accès REST anon).
-  - **OTP reset 30 min** : Supabase → Authentication → Providers → Email → *Email OTP Expiration* = `1800`.
+- 🛡️ **Sécurité (étape 25) — ✅ TOUT RENSEIGNÉ (local + Vercel)** :
+  - ✅ **Upstash (rate limiting)** : `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
+  - ✅ **Sentry (monitoring)** : `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`.
+  - ✅ **RLS** : `security/rls-policies.sql` exécuté dans Supabase.
+  - ✅ **OTP reset 30 min** : `Email OTP Expiration` = `1800`.
+  - **Alertes Sentry** : 3 alertes (erreurs > 5 / 5 min · `kind:stripe_webhook` · pic `kind:rate_limit`) — les événements tagués sont émis par le code (`lib/rate-limit.ts`, `app/api/webhooks/stripe/route.ts`).
 
 ### Compte admin (production) — depuis l'étape 16
 - **Email** : `kaantekten958@gmail.com` — mot de passe défini à la création (`db:create-admin`, non stocké ici).

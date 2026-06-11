@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import * as Sentry from "@sentry/nextjs";
 
 import { logger } from "@/lib/logger";
 
@@ -55,6 +56,12 @@ export async function checkRateLimit(
     if (!success) {
       const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
       logger.warn("rate_limit_exceeded", { scope, identifier, retryAfter });
+      // Événement Sentry tagué → permet l'alerte « pic de rate limit »
+      // (no-op sans DSN). Voir alerte Sentry filtrée sur kind=rate_limit.
+      Sentry.captureMessage("rate_limit_exceeded", {
+        level: "warning",
+        tags: { kind: "rate_limit", scope },
+      });
       return { ok: false, retryAfter };
     }
     return { ok: true, retryAfter: 0 };

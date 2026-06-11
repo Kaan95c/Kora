@@ -9,6 +9,7 @@ import { sendEmail } from "@/lib/email";
 import { PaymentReceiptEmail } from "@/components/emails/PaymentReceiptEmail";
 import { withApi } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -62,6 +63,10 @@ async function syncSubscription(sub: Stripe.Subscription) {
 
 // POST : reçoit les events Stripe. Vérifie la signature puis traite payment_intent.succeeded.
 export const POST = withApi(async (request: Request) => {
+  // Tague toute la requête → les échecs (signature ET traitement) remontent à
+  // Sentry sous kind=stripe_webhook (alerte dédiée). No-op sans DSN.
+  Sentry.getIsolationScope().setTag("kind", "stripe_webhook");
+
   const sig = request.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!sig || !secret) {
@@ -76,6 +81,10 @@ export const POST = withApi(async (request: Request) => {
     event = stripe.webhooks.constructEvent(raw, sig, secret);
   } catch {
     logger.warn("stripe_webhook_bad_signature", {});
+    Sentry.captureMessage("stripe_webhook_bad_signature", {
+      level: "error",
+      tags: { kind: "stripe_webhook" },
+    });
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
