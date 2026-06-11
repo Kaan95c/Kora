@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Users,
@@ -23,14 +24,21 @@ import {
 
 import { cn } from "@/lib/utils";
 
+type NavItem = {
+  key: string;
+  href: string;
+  icon: LucideIcon;
+};
+
 const quickActions: NavItem[] = [
-  { label: "Nouveau projet", href: "/projects?new=1", icon: FolderPlus },
-  { label: "Nouveau contact", href: "/contacts?new=1", icon: UserPlus },
-  { label: "Nouveau document", href: "/documents?new=1", icon: FileText },
-  { label: "Nouveau RDV", href: "/scheduler?new=1", icon: CalendarPlus },
+  { key: "newProject", href: "/projects?new=1", icon: FolderPlus },
+  { key: "newContact", href: "/contacts?new=1", icon: UserPlus },
+  { key: "newDocument", href: "/documents?new=1", icon: FileText },
+  { key: "newAppointment", href: "/scheduler?new=1", icon: CalendarPlus },
 ];
 
 function QuickAction({ onNavigate }: { onNavigate?: () => void }) {
+  const t = useTranslations("nav");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -69,7 +77,7 @@ function QuickAction({ onNavigate }: { onNavigate?: () => void }) {
                 className="font-inter flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1b1c1a] transition-colors hover:bg-[#f5f3f0]"
               >
                 <Icon className="h-4 w-4 text-[#444841]" strokeWidth={1.75} />
-                {a.label}
+                {t(a.key)}
               </Link>
             );
           })}
@@ -83,31 +91,25 @@ function QuickAction({ onNavigate }: { onNavigate?: () => void }) {
         className="font-manrope flex w-full items-center justify-center gap-2 rounded-full bg-[#1b1c1a] px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:-translate-y-px hover:opacity-90"
       >
         <Plus className="h-4 w-4" strokeWidth={2} />
-        Quick Action
+        {t("quickAction")}
       </button>
     </div>
   );
 }
 
-type NavItem = {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-};
-
 const mainNav: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Contacts", href: "/contacts", icon: Users },
-  { label: "Projects", href: "/projects", icon: Briefcase },
-  { label: "Documents", href: "/documents", icon: FileText },
-  { label: "Inbox", href: "/inbox", icon: Inbox },
-  { label: "Scheduler", href: "/scheduler", icon: Calendar },
-  { label: "Finance", href: "/finance", icon: TrendingUp },
-  { label: "Automations", href: "/automations", icon: Zap },
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { key: "contacts", href: "/contacts", icon: Users },
+  { key: "projects", href: "/projects", icon: Briefcase },
+  { key: "documents", href: "/documents", icon: FileText },
+  { key: "inbox", href: "/inbox", icon: Inbox },
+  { key: "scheduler", href: "/scheduler", icon: Calendar },
+  { key: "finance", href: "/finance", icon: TrendingUp },
+  { key: "automations", href: "/automations", icon: Zap },
 ];
 
 const settingsNav: NavItem = {
-  label: "Settings",
+  key: "settings",
   href: "/settings",
   icon: Settings,
 };
@@ -120,6 +122,7 @@ function NavLink({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const active =
     pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
@@ -142,7 +145,7 @@ function NavLink({
         )}
         strokeWidth={1.75}
       />
-      {item.label}
+      {t(item.key)}
     </Link>
   );
 }
@@ -154,6 +157,7 @@ export function Sidebar({
   open?: boolean;
   onClose?: () => void;
 }) {
+  const t = useTranslations("nav");
   return (
     <>
       {/* Backdrop (mobile, sidebar ouverte) */}
@@ -182,7 +186,7 @@ export function Sidebar({
           className="h-auto w-[84px]"
         />
         <p className="font-inter mt-2 text-xs font-normal text-on-surface-variant">
-          Creative Partner
+          {t("tagline")}
         </p>
       </div>
 

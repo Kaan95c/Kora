@@ -3,21 +3,23 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { User, Building2, Palette, CreditCard, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-type NavItem = { label: string; href: string; icon: LucideIcon };
+type NavItem = { key: string; href: string; icon: LucideIcon };
 
 const NAV: NavItem[] = [
-  { label: "General", href: "/settings/general", icon: User },
-  { label: "Studio", href: "/settings/studio", icon: Building2 },
-  { label: "Branding", href: "/settings/branding", icon: Palette },
-  { label: "Billing", href: "/settings/billing", icon: CreditCard },
+  { key: "navGeneral", href: "/settings/general", icon: User },
+  { key: "navStudio", href: "/settings/studio", icon: Building2 },
+  { key: "navBranding", href: "/settings/branding", icon: Palette },
+  { key: "navBilling", href: "/settings/billing", icon: CreditCard },
 ];
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const t = useTranslations("settings");
 
   return (
     <div className="flex flex-col gap-6 md:flex-row md:gap-8">
@@ -45,7 +47,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
                   )}
                   strokeWidth={1.75}
                 />
-                {item.label}
+                {t(item.key)}
               </Link>
             );
           })}

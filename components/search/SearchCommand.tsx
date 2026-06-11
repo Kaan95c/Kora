@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Search, Users, Briefcase, FileText } from "lucide-react";
 
 // ───────────────────────── Types ─────────────────────────
@@ -34,6 +35,7 @@ type SearchResults = {
  */
 export function SearchCommand() {
   const router = useRouter();
+  const t = useTranslations("topbar");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
@@ -111,7 +113,7 @@ export function SearchCommand() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Search"
+          aria-label={t("search")}
           className="relative flex h-10 w-full max-w-[400px] items-center rounded-lg border border-transparent bg-surface-container pl-9 pr-2 text-left transition-colors hover:border-primary/30"
         >
           <Search
@@ -119,7 +121,7 @@ export function SearchCommand() {
             strokeWidth={1.75}
           />
           <span className="font-inter flex-1 truncate text-sm text-outline">
-            Search projects, contacts, documents...
+            {t("searchPlaceholder")}
           </span>
           <kbd className="font-inter ml-2 hidden shrink-0 items-center rounded border border-outline-variant/60 bg-white px-1.5 py-0.5 text-[11px] font-medium text-on-surface-variant lg:inline-flex">
             ⌘K
@@ -132,7 +134,7 @@ export function SearchCommand() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Search"
+          aria-label={t("search")}
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}
@@ -150,7 +152,7 @@ export function SearchCommand() {
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search projects, contacts, documents..."
+                placeholder={t("searchPlaceholder")}
                 className="font-inter h-14 w-full bg-transparent pl-12 pr-4 text-base text-on-surface placeholder:text-outline focus:outline-none"
               />
             </div>
@@ -159,13 +161,13 @@ export function SearchCommand() {
             <div className="max-h-[60vh] overflow-y-auto p-2">
               {!hasQuery ? (
                 <p className="font-inter px-3 py-6 text-center text-sm text-[#444841]">
-                  Type to search across your studio.
+                  {t("searchHint")}
                 </p>
               ) : results && total > 0 ? (
                 <div className="flex flex-col">
                   {results.contacts.length > 0 && (
                     <div>
-                      <p className={headerClass}>Contacts</p>
+                      <p className={headerClass}>{t("groupContacts")}</p>
                       {results.contacts.map((c) => (
                         <button
                           key={c.id}
@@ -192,7 +194,7 @@ export function SearchCommand() {
 
                   {results.projects.length > 0 && (
                     <div>
-                      <p className={headerClass}>Projets</p>
+                      <p className={headerClass}>{t("groupProjects")}</p>
                       {results.projects.map((p) => (
                         <button
                           key={p.id}
@@ -219,7 +221,7 @@ export function SearchCommand() {
 
                   {results.documents.length > 0 && (
                     <div>
-                      <p className={headerClass}>Documents</p>
+                      <p className={headerClass}>{t("groupDocuments")}</p>
                       {results.documents.map((d) => (
                         <button
                           key={d.id}
@@ -246,11 +248,11 @@ export function SearchCommand() {
                 </div>
               ) : loading ? (
                 <p className="font-inter px-3 py-6 text-center text-sm text-[#444841]">
-                  Searching…
+                  {t("searching")}
                 </p>
               ) : (
                 <p className="font-inter px-3 py-6 text-center text-sm text-[#444841]">
-                  No results found.
+                  {t("noResults")}
                 </p>
               )}
             </div>

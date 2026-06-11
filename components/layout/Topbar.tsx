@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -24,6 +25,7 @@ function getInitials(fullName?: string | null, email?: string | null) {
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter();
+  const t = useTranslations("topbar");
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -83,7 +85,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           onClick={() => router.push("/projects?new=1")}
           className="font-inter hidden rounded-lg bg-primary px-[18px] py-2.5 text-sm font-medium text-white transition-all duration-150 hover:-translate-y-px hover:shadow-card md:block"
         >
-          New Project
+          {t("newProject")}
         </button>
 
         {/* Avatar + dropdown */}
@@ -102,7 +104,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
             <div className="absolute right-0 top-full z-50 mt-2 w-[200px] overflow-hidden rounded-xl border border-[#c4c8be] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.10)]">
               <div className="px-4 py-3">
                 <p className="font-inter truncate text-sm font-medium text-[#1b1c1a]">
-                  {fullName ?? "Account"}
+                  {fullName ?? t("account")}
                 </p>
                 {email && (
                   <p className="font-inter truncate text-xs text-[#444841]">
@@ -117,7 +119,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                 className="font-inter flex items-center gap-2 px-4 py-2.5 text-sm text-[#1b1c1a] transition-colors hover:bg-[#f5f3f0]"
               >
                 <SettingsIcon className="h-4 w-4 text-[#444841]" />
-                Settings
+                {t("settings")}
               </Link>
               <button
                 type="button"
@@ -125,7 +127,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                 className="font-inter flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[#ba1a1a] transition-colors hover:bg-[#f5f3f0]"
               >
                 <LogOut className="h-4 w-4" />
-                Sign out
+                {t("signOut")}
               </button>
             </div>
           )}

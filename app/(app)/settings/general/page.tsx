@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Camera, Check } from "lucide-react";
 
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -8,9 +9,9 @@ import { createClient } from "@/lib/supabase/client";
 import { LanguageSelect } from "@/components/settings/LanguageSelect";
 
 const PASSWORD_RULES = [
-  { label: "8 characters minimum", test: (p: string) => p.length >= 8 },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
+  { key: "pwRule8", test: (p: string) => p.length >= 8 },
+  { key: "pwRuleUpper", test: (p: string) => /[A-Z]/.test(p) },
+  { key: "pwRuleNumber", test: (p: string) => /[0-9]/.test(p) },
 ];
 
 const inputCls =
@@ -24,6 +25,7 @@ function initialsOf(name: string, email: string) {
 }
 
 export default function GeneralSettingsPage() {
+  const t = useTranslations("settings");
   const { user } = useAuth();
   const email = user?.email ?? "";
 
@@ -69,9 +71,9 @@ export default function GeneralSettingsPage() {
   async function updatePassword() {
     setPwError(null);
     setPwSaved(false);
-    if (!current) return setPwError("Enter your current password.");
-    if (!pwValid) return setPwError("New password doesn't meet the rules.");
-    if (newPw !== confirm) return setPwError("Passwords don't match.");
+    if (!current) return setPwError(t("errEnterCurrent"));
+    if (!pwValid) return setPwError(t("errPwRules"));
+    if (newPw !== confirm) return setPwError(t("errPwMatch"));
 
     setPwSaving(true);
     const supabase = createClient();
@@ -82,7 +84,7 @@ export default function GeneralSettingsPage() {
     });
     if (signInErr) {
       setPwSaving(false);
-      return setPwError("Current password is incorrect.");
+      return setPwError(t("errCurrentWrong"));
     }
     const { error: updErr } = await supabase.auth.updateUser({
       password: newPw,
@@ -99,16 +101,16 @@ export default function GeneralSettingsPage() {
   return (
     <div>
       <h1 className="font-manrope text-[28px] font-semibold tracking-[-0.01em] text-[#1b1c1a]">
-        Account Settings
+        {t("accountTitle")}
       </h1>
       <p className="font-inter mt-1 text-sm text-[#444841]">
-        Manage your personal information and password.
+        {t("accountSubtitle")}
       </p>
 
       {/* Personal Information */}
       <section className="mt-6 rounded-2xl bg-white p-6 shadow-card">
         <h2 className="font-manrope text-lg font-semibold text-[#1b1c1a]">
-          Personal Information
+          {t("personalInfo")}
         </h2>
 
         <div className="mt-5 flex items-center gap-5">
@@ -121,26 +123,26 @@ export default function GeneralSettingsPage() {
               className="font-inter flex items-center gap-2 rounded-lg border border-[#c4c8be] bg-white px-4 py-2 text-sm font-medium text-[#1b1c1a] transition-colors hover:bg-[#f5f3f0]"
             >
               <Camera className="h-4 w-4" strokeWidth={1.75} />
-              Change photo
+              {t("changePhoto")}
             </button>
             <p className="font-inter mt-1.5 text-xs text-outline">
-              PNG or JPG, up to 2 MB.
+              {t("photoHint")}
             </p>
           </div>
         </div>
 
         <div className="mt-6 grid max-w-xl grid-cols-1 gap-4">
           <div>
-            <label className={labelCls}>Full name</label>
+            <label className={labelCls}>{t("fullName")}</label>
             <input
               className={inputCls}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
+              placeholder={t("yourName")}
             />
           </div>
           <div>
-            <label className={labelCls}>Email address</label>
+            <label className={labelCls}>{t("emailAddress")}</label>
             <input
               className={`${inputCls} cursor-not-allowed bg-[#f5f3f0] text-[#747870]`}
               value={email}
@@ -148,7 +150,7 @@ export default function GeneralSettingsPage() {
               disabled
             />
             <p className="font-inter mt-1.5 text-xs text-outline">
-              Managed by your authentication provider.
+              {t("emailManaged")}
             </p>
           </div>
         </div>
@@ -160,11 +162,11 @@ export default function GeneralSettingsPage() {
             disabled={savingProfile}
             className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
           >
-            {savingProfile ? "Saving…" : "Save changes"}
+            {savingProfile ? t("saving") : t("saveChanges")}
           </button>
           {savedProfile && (
             <span className="font-inter flex items-center gap-1 text-sm font-medium text-[#3b4b36]">
-              <Check className="h-4 w-4" strokeWidth={2} /> Saved
+              <Check className="h-4 w-4" strokeWidth={2} /> {t("saved")}
             </span>
           )}
         </div>
@@ -173,15 +175,15 @@ export default function GeneralSettingsPage() {
       {/* Password */}
       <section className="mt-6 rounded-2xl bg-white p-6 shadow-card">
         <h2 className="font-manrope text-lg font-semibold text-[#1b1c1a]">
-          Password
+          {t("password")}
         </h2>
         <p className="font-inter mt-1 text-sm text-[#444841]">
-          Choose a strong password you don&apos;t use elsewhere.
+          {t("passwordHint")}
         </p>
 
         <div className="mt-5 grid max-w-xl grid-cols-1 gap-4">
           <div>
-            <label className={labelCls}>Current password</label>
+            <label className={labelCls}>{t("currentPassword")}</label>
             <input
               type="password"
               className={inputCls}
@@ -191,7 +193,7 @@ export default function GeneralSettingsPage() {
             />
           </div>
           <div>
-            <label className={labelCls}>New password</label>
+            <label className={labelCls}>{t("newPassword")}</label>
             <input
               type="password"
               className={inputCls}
@@ -204,7 +206,7 @@ export default function GeneralSettingsPage() {
                 const ok = rule.test(newPw);
                 return (
                   <li
-                    key={rule.label}
+                    key={rule.key}
                     className={`font-inter flex items-center gap-1.5 text-xs ${
                       ok ? "text-[#3b4b36]" : "text-[#747870]"
                     }`}
@@ -213,14 +215,14 @@ export default function GeneralSettingsPage() {
                       className={`h-3 w-3 ${ok ? "text-[#3b4b36]" : "text-[#c4c8be]"}`}
                       strokeWidth={3}
                     />
-                    {rule.label}
+                    {t(rule.key)}
                   </li>
                 );
               })}
             </ul>
           </div>
           <div>
-            <label className={labelCls}>Confirm new password</label>
+            <label className={labelCls}>{t("confirmPassword")}</label>
             <input
               type="password"
               className={inputCls}
@@ -244,11 +246,11 @@ export default function GeneralSettingsPage() {
             disabled={pwSaving}
             className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
           >
-            {pwSaving ? "Updating…" : "Update password"}
+            {pwSaving ? t("updating") : t("updatePassword")}
           </button>
           {pwSaved && (
             <span className="font-inter flex items-center gap-1 text-sm font-medium text-[#3b4b36]">
-              <Check className="h-4 w-4" strokeWidth={2} /> Password updated
+              <Check className="h-4 w-4" strokeWidth={2} /> {t("passwordUpdated")}
             </span>
           )}
         </div>

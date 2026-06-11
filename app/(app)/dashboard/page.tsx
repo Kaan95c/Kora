@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   AreaChart,
   Area,
@@ -64,10 +65,10 @@ type DashboardTask = {
 
 // ─── Config visuelle des cartes "Urgent Tasks" (par index) ───
 const TASK_VISUALS = [
-  { Icon: AlertCircle, color: "#ba1a1a", link: "Review Now →", href: "/projects" },
-  { Icon: FileText, color: "#444841", link: "Send Now →", href: "/documents" },
-  { Icon: Mail, color: "#444841", link: "Open Inbox →", href: "/inbox" },
-];
+  { Icon: AlertCircle, color: "#ba1a1a", linkKey: "reviewNow", href: "/projects" },
+  { Icon: FileText, color: "#444841", linkKey: "sendNow", href: "/documents" },
+  { Icon: Mail, color: "#444841", linkKey: "openInbox", href: "/inbox" },
+] as const;
 
 const PROJECT_TILE_COLORS = ["#d5e8cb", "#f8dac5", "#efeeea"];
 
@@ -81,6 +82,7 @@ function initialsOf(name: string) {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations("dashboard");
   const { user } = useAuth();
   const firstName =
     (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] ??
@@ -161,15 +163,15 @@ export default function DashboardPage() {
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-manrope text-[32px] font-bold leading-tight tracking-[-0.02em] text-[#52634c] md:text-[48px]">
-            Morning, {firstName}
+            {t("greeting", { name: firstName })}
           </h1>
           <p className="font-inter mt-1 text-base text-[#444841]">
-            Here&apos;s what&apos;s happening with your studio today.
+            {t("subtitle")}
           </p>
         </div>
         <span className="font-inter inline-flex items-center gap-2 rounded-full bg-[#efeeea] px-3 py-1.5 text-xs font-semibold text-[#444841]">
           <span className="h-2 w-2 animate-pulse rounded-full bg-[#52634c]" />
-          Live Overview
+          {t("liveOverview")}
         </span>
       </div>
 
@@ -179,7 +181,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between">
             <span className="font-inter text-[11px] font-semibold uppercase tracking-widest text-[#444841]">
-              Monthly Revenue
+              {t("monthlyRevenue")}
             </span>
             <Wallet className="h-5 w-5 text-[#52634c]" strokeWidth={1.75} />
           </div>
@@ -192,7 +194,7 @@ export default function DashboardPage() {
             }`}
           >
             {metrics.revenueGrowth >= 0 ? "↗" : "↘"}{" "}
-            {Math.abs(metrics.revenueGrowth)}% from last month
+            {Math.abs(metrics.revenueGrowth)}% {t("fromLastMonth")}
           </p>
         </div>
 
@@ -200,7 +202,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between">
             <span className="font-inter text-[11px] font-semibold uppercase tracking-widest text-[#444841]">
-              Active Projects
+              {t("activeProjects")}
             </span>
             <FolderOpen className="h-5 w-5 text-[#52634c]" strokeWidth={1.75} />
           </div>
@@ -208,7 +210,7 @@ export default function DashboardPage() {
             {metrics.activeProjects}
           </p>
           <p className="font-inter mt-2 text-xs text-[#444841]">
-            ⏱ {metrics.projectsDueThisWeek} due this week
+            ⏱ {t("dueThisWeek", { count: metrics.projectsDueThisWeek })}
           </p>
         </div>
 
@@ -216,7 +218,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between">
             <span className="font-inter text-[11px] font-semibold uppercase tracking-widest text-[#444841]">
-              Pending Documents
+              {t("pendingDocuments")}
             </span>
             <FileText className="h-5 w-5 text-[#52634c]" strokeWidth={1.75} />
           </div>
@@ -224,7 +226,7 @@ export default function DashboardPage() {
             {metrics.pendingDocuments}
           </p>
           <p className="font-inter mt-2 text-xs text-[#ba1a1a]">
-            ⚠ {metrics.requireSignature} require signature
+            ⚠ {t("requireSignature", { count: metrics.requireSignature })}
           </p>
         </div>
       </div>
@@ -235,15 +237,15 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] lg:col-span-3">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-              Revenue Growth
+              {t("revenueGrowth")}
             </h2>
             <select
-              defaultValue="Last 12 Months"
+              defaultValue="12"
               className="font-inter rounded-lg border-none bg-[#efeeea] px-3 py-1.5 text-sm text-[#444841] focus:outline-none"
             >
-              <option>Last 12 Months</option>
-              <option>Last 6 Months</option>
-              <option>Last 30 Days</option>
+              <option value="12">{t("last12Months")}</option>
+              <option value="6">{t("last6Months")}</option>
+              <option value="30">{t("last30Days")}</option>
             </select>
           </div>
           <ResponsiveContainer width="100%" height={220}>
@@ -305,7 +307,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] lg:col-span-2">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-              Upcoming
+              {t("upcoming")}
             </h2>
             <MoreHorizontal className="h-[18px] w-[18px] text-[#c4c8be]" />
           </div>
@@ -344,7 +346,7 @@ export default function DashboardPage() {
             href="/scheduler"
             className="font-inter mt-4 block w-full rounded-xl border border-[#c4c8be] py-2 text-center text-sm text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
-            View Full Calendar
+            {t("viewFullCalendar")}
           </Link>
         </div>
       </div>
@@ -355,23 +357,23 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-              Recent Projects
+              {t("recentProjects")}
             </h2>
             <Link
               href="/projects"
               className="font-inter text-sm text-[#52634c] hover:underline"
             >
-              View All
+              {t("viewAll")}
             </Link>
           </div>
 
           <div className="grid grid-cols-4 border-b border-[#c4c8be]/50 pb-3">
-            {["PROJECT NAME", "CLIENT", "STATUS", "DEADLINE"].map((h) => (
+            {["colProject", "colClient", "colStatus", "colDeadline"].map((k) => (
               <span
-                key={h}
+                key={k}
                 className="font-inter text-[10px] font-bold uppercase tracking-wide text-[#444841]"
               >
-                {h}
+                {t(k)}
               </span>
             ))}
           </div>
@@ -426,10 +428,10 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <div className="mb-4 flex items-center gap-3">
             <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-              Urgent Tasks
+              {t("urgentTasks")}
             </h2>
             <span className="font-inter rounded-full bg-[#ffdad6] px-3 py-1 text-[11px] font-bold text-[#93000a]">
-              {tasks.length} ACTION NEEDED
+              {t("actionNeeded", { count: tasks.length })}
             </span>
           </div>
 
@@ -458,7 +460,7 @@ export default function DashboardPage() {
                         href={visual.href}
                         className="font-inter mt-2 inline-block text-xs font-medium text-[#52634c] hover:underline"
                       >
-                        {visual.link}
+                        {t(visual.linkKey)}
                       </Link>
                     </div>
                   </div>
