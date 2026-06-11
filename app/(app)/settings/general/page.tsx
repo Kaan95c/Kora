@@ -5,6 +5,7 @@ import { Camera, Check } from "lucide-react";
 
 import { useAuth } from "@/lib/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
+import { LanguageSelect } from "@/components/settings/LanguageSelect";
 
 const PASSWORD_RULES = [
   { label: "8 characters minimum", test: (p: string) => p.length >= 8 },
@@ -252,6 +253,8 @@ export default function GeneralSettingsPage() {
           )}
         </div>
       </section>
+
+      <LanguageSelect />
     </div>
   );
 }

@@ -154,3 +154,6 @@ export const setupCompanySchema = z.object({
 export const billingCheckoutSchema = z.object({
   plan: z.enum(["STARTER", "PRO"], { message: "Plan invalide." }),
 });
+export const languageSchema = z.object({
+  language: z.enum(["fr", "en"], { message: "Langue invalide." }),
+});

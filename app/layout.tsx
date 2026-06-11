@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Inter } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 
 import { CookieBanner } from "@/components/legal/CookieBanner";
@@ -24,16 +26,21 @@ export const metadata: Metadata = {
     "La plateforme de gestion client pour freelances et agences créatives.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="fr" className={`${manrope.variable} ${inter.variable}`}>
+    <html lang={locale} className={`${manrope.variable} ${inter.variable}`}>
       <body className="font-sans antialiased">
-        {children}
-        <CookieBanner />
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+          <CookieBanner />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

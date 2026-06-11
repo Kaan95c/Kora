@@ -1,4 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 // Security headers appliqués à toutes les routes (défense en profondeur).
 // Pas de CSP stricte ici : Next injecte des scripts/styles inline → une CSP
@@ -45,4 +48,4 @@ const config = process.env.NEXT_PUBLIC_SENTRY_DSN
     })
   : nextConfig;
 
-export default config;
+export default withNextIntl(config);

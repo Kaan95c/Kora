@@ -14,6 +14,7 @@ export type Company = {
   id: string;
   name: string;
   plan: string;
+  language?: string | null;
   primaryColor: string;
   invoicePrefix: string;
   quotePrefix: string;

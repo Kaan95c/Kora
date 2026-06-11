@@ -106,6 +106,7 @@ model Company {
   id            String   @id @default(cuid())
   name          String
   plan          Plan     @default(FREE)
+  language      String   @default("fr")
   primaryColor  String   @default("#52634c")
   invoicePrefix String   @default("FAC")
   quotePrefix   String   @default("DEV")
