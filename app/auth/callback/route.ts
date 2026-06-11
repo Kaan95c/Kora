@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,8 @@ export async function GET(request: Request) {
               data: { ownerId: created.id },
             });
           });
+
+          logger.info("account_created", { email, via: "oauth" });
         }
       }
     }
