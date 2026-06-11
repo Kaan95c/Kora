@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Menu,
-  Search,
   Bell,
   HelpCircle,
   Settings as SettingsIcon,
@@ -15,6 +14,7 @@ import {
 
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { SearchCommand } from "@/components/search/SearchCommand";
 
 function getInitials(fullName?: string | null, email?: string | null) {
   if (fullName) {
@@ -80,19 +80,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
       </div>
 
       {/* Recherche centrée (desktop) */}
-      <div className="hidden flex-1 justify-center md:flex">
-        <div className="relative w-full max-w-[400px]">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-outline"
-            strokeWidth={1.75}
-          />
-          <input
-            type="text"
-            placeholder="Search projects, contacts, documents..."
-            className="font-inter h-10 w-full rounded-lg border border-transparent bg-surface-container pl-9 pr-4 text-sm text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/15"
-          />
-        </div>
-      </div>
+      <SearchCommand />
 
       {/* Actions à droite */}
       <div className="ml-auto flex items-center gap-3 md:ml-0">

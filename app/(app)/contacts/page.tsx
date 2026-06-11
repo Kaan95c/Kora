@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { UsageMeter } from "@/components/shared/UsageMeter";
 import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useNewDrawerParam } from "@/lib/hooks/useNewDrawerParam";
 import {
   STATUS_CONFIG,
   initials,
@@ -367,6 +368,9 @@ export default function ContactsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const { limits } = useAuth();
+
+  // Quick Action (Sidebar) → /contacts?new=1 ouvre le drawer.
+  useNewDrawerParam(() => setDrawerOpen(true));
 
   async function loadContacts() {
     try {

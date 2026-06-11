@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   AreaChart,
   Area,
@@ -63,9 +64,9 @@ type DashboardTask = {
 
 // ─── Config visuelle des cartes "Urgent Tasks" (par index) ───
 const TASK_VISUALS = [
-  { Icon: AlertCircle, color: "#ba1a1a", link: "Review Now →" },
-  { Icon: FileText, color: "#444841", link: "Send Now →" },
-  { Icon: Mail, color: "#444841", link: "Open Inbox →" },
+  { Icon: AlertCircle, color: "#ba1a1a", link: "Review Now →", href: "/projects" },
+  { Icon: FileText, color: "#444841", link: "Send Now →", href: "/documents" },
+  { Icon: Mail, color: "#444841", link: "Open Inbox →", href: "/inbox" },
 ];
 
 const PROJECT_TILE_COLORS = ["#d5e8cb", "#f8dac5", "#efeeea"];
@@ -334,12 +335,12 @@ export default function DashboardPage() {
               );
             })}
           </div>
-          <button
-            type="button"
-            className="font-inter mt-4 w-full rounded-xl border border-[#c4c8be] py-2 text-sm text-[#444841] transition-colors hover:bg-[#f5f3f0]"
+          <Link
+            href="/scheduler"
+            className="font-inter mt-4 block w-full rounded-xl border border-[#c4c8be] py-2 text-center text-sm text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
             View Full Calendar
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -351,12 +352,12 @@ export default function DashboardPage() {
             <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
               Recent Projects
             </h2>
-            <button
-              type="button"
+            <Link
+              href="/projects"
               className="font-inter text-sm text-[#52634c] hover:underline"
             >
               View All
-            </button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-4 border-b border-[#c4c8be]/50 pb-3">
@@ -448,12 +449,12 @@ export default function DashboardPage() {
                           {task.description}
                         </p>
                       )}
-                      <button
-                        type="button"
-                        className="font-inter mt-2 text-xs font-medium text-[#52634c] hover:underline"
+                      <Link
+                        href={visual.href}
+                        className="font-inter mt-2 inline-block text-xs font-medium text-[#52634c] hover:underline"
                       >
                         {visual.link}
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>

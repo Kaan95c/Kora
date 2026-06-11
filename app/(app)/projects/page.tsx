@@ -28,6 +28,7 @@ import { StatusBadge, type StatusVariant } from "@/components/shared/StatusBadge
 import { UsageMeter } from "@/components/shared/UsageMeter";
 import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useNewDrawerParam } from "@/lib/hooks/useNewDrawerParam";
 
 // ───────────────────────── Types & constantes ─────────────────────────
 
@@ -482,6 +483,9 @@ export default function ProjectsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const { limits } = useAuth();
+
+  // Quick Action (Sidebar) → /projects?new=1 ouvre le drawer.
+  useNewDrawerParam(() => setDrawerOpen(true));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })

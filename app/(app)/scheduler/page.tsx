@@ -43,6 +43,7 @@ import {
   minutesIntoDay,
   durationMinutes,
 } from "@/lib/scheduler";
+import { useNewDrawerParam } from "@/lib/hooks/useNewDrawerParam";
 
 // ───────────────────────── Types ─────────────────────────
 
@@ -873,6 +874,9 @@ export default function SchedulerPage() {
     editing: Appt | null;
     presetDate: Date | null;
   }>({ open: false, editing: null, presetDate: null });
+
+  // Quick Action (Sidebar) → /scheduler?new=1 ouvre le drawer (openCreate hoisté).
+  useNewDrawerParam(() => openCreate(null));
 
   const now = useMemo(() => new Date(), []);
 

@@ -29,6 +29,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { UsageMeter } from "@/components/shared/UsageMeter";
 import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useNewDrawerParam } from "@/lib/hooks/useNewDrawerParam";
 import {
   TYPE_CONFIG,
   STATUS_CONFIG,
@@ -397,6 +398,9 @@ export default function DocumentsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const { limits } = useAuth();
+
+  // Quick Action (Sidebar) → /documents?new=1 ouvre le drawer.
+  useNewDrawerParam(() => setDrawerOpen(true));
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
     null
   );

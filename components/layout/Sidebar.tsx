@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,10 +15,79 @@ import {
   Zap,
   Settings,
   Plus,
+  FolderPlus,
+  UserPlus,
+  CalendarPlus,
   type LucideIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+
+const quickActions: NavItem[] = [
+  { label: "Nouveau projet", href: "/projects?new=1", icon: FolderPlus },
+  { label: "Nouveau contact", href: "/contacts?new=1", icon: UserPlus },
+  { label: "Nouveau document", href: "/documents?new=1", icon: FileText },
+  { label: "Nouveau RDV", href: "/scheduler?new=1", icon: CalendarPlus },
+];
+
+function QuickAction({ onNavigate }: { onNavigate?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      {/* Menu popup (au-dessus du bouton) */}
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-xl border border-[#c4c8be] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+          {quickActions.map((a) => {
+            const Icon = a.icon;
+            return (
+              <Link
+                key={a.href}
+                href={a.href}
+                onClick={() => {
+                  setOpen(false);
+                  onNavigate?.();
+                }}
+                className="font-inter flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1b1c1a] transition-colors hover:bg-[#f5f3f0]"
+              >
+                <Icon className="h-4 w-4 text-[#444841]" strokeWidth={1.75} />
+                {a.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="font-manrope flex w-full items-center justify-center gap-2 rounded-full bg-[#1b1c1a] px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:-translate-y-px hover:opacity-90"
+      >
+        <Plus className="h-4 w-4" strokeWidth={2} />
+        Quick Action
+      </button>
+    </div>
+  );
+}
 
 type NavItem = {
   label: string;
@@ -129,13 +199,7 @@ export function Sidebar({
 
       {/* Quick Action */}
       <div className="p-4">
-        <button
-          type="button"
-          className="font-manrope flex w-full items-center justify-center gap-2 rounded-full bg-[#1b1c1a] px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:-translate-y-px hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" strokeWidth={2} />
-          Quick Action
-        </button>
+        <QuickAction onNavigate={onClose} />
       </div>
       </aside>
     </>
