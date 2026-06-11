@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import * as Sentry from "@sentry/nextjs";
 
 import { logger } from "@/lib/logger";
 import { corsHeaders } from "@/lib/cors";
@@ -106,7 +107,8 @@ export function withApi<C = unknown>(
           ms: Date.now() - start,
           err: err instanceof Error ? err.message : String(err),
         });
-        // Sentry.captureException(err) — câblé en Phase 4.
+        // Remonté à Sentry (no-op si pas de DSN configuré).
+        Sentry.captureException(err);
       } else {
         logger.warn("api_client_error", {
           method: req.method,

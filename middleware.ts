@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { updateSession } from "@/lib/supabase/middleware";
 import { corsHeaders } from "@/lib/cors";
+import { checkRateLimit, scopeForPath } from "@/lib/rate-limit";
 
 // Routes (préfixes) qui exigent une session.
 const PROTECTED_PREFIXES = [
@@ -27,6 +28,33 @@ export async function middleware(request: NextRequest) {
       status: 204,
       headers: corsHeaders(request.headers.get("origin")),
     });
+  }
+
+  // Rate limiting par IP sur /api/* (webhooks déjà hors matcher). Fail-open.
+  if (pathname.startsWith("/api/")) {
+    const ip =
+      request.ip ??
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "anonymous";
+    const { ok, retryAfter } = await checkRateLimit(
+      scopeForPath(pathname),
+      ip
+    );
+    if (!ok) {
+      return NextResponse.json(
+        {
+          error: "Trop de requêtes, réessaie dans un instant.",
+          code: "RATE_LIMITED",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfter),
+            ...corsHeaders(request.headers.get("origin")),
+          },
+        }
+      );
+    }
   }
 
   const { supabaseResponse, user } = await updateSession(request);
