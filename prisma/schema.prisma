@@ -179,6 +179,8 @@ model Contact {
   messages     Message[]
 
   @@index([companyId])
+  @@index([companyId, status])
+  @@index([email])
 }
 
 model Project {
@@ -203,6 +205,7 @@ model Project {
 
   @@index([companyId])
   @@index([contactId])
+  @@index([companyId, status])
 }
 
 model Document {
@@ -227,6 +230,8 @@ model Document {
 
   @@index([companyId])
   @@index([contactId])
+  @@index([companyId, status])
+  @@index([companyId, type])
 }
 
 model Payment {
@@ -250,6 +255,7 @@ model Payment {
 
   @@index([companyId])
   @@index([documentId])
+  @@index([companyId, status])
 }
 
 model Appointment {
@@ -269,6 +275,7 @@ model Appointment {
 
   @@index([companyId])
   @@index([contactId])
+  @@index([companyId, startAt])
 }
 
 model SessionType {
