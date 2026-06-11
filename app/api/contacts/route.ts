@@ -4,17 +4,32 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
 import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
+import { withApi } from "@/lib/api-handler";
+import { contactCreateSchema } from "@/lib/validations";
+import { sanitizeNullable } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
 const CONTACT_STATUSES = ["LEAD", "PROSPECT", "CLIENT", "ARCHIVED"] as const;
 type ContactStatus = (typeof CONTACT_STATUSES)[number];
-
 const isStatus = (v: unknown): v is ContactStatus =>
   typeof v === "string" && CONTACT_STATUSES.includes(v as ContactStatus);
 
+const CONTACT_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  companyName: true,
+  status: true,
+  tags: true,
+  createdAt: true,
+  _count: { select: { projects: true, documents: true } },
+} satisfies Prisma.ContactSelect;
+
 // ───────────────────────── GET : liste ─────────────────────────
-export async function GET(request: Request) {
+export const GET = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,11 +41,7 @@ export async function GET(request: Request) {
   const search = searchParams.get("search")?.trim();
 
   const where: Prisma.ContactWhereInput = { companyId: company.id };
-
-  if (isStatus(status)) {
-    where.status = status;
-  }
-
+  if (isStatus(status)) where.status = status;
   if (search) {
     where.OR = [
       { firstName: { contains: search, mode: "insensitive" } },
@@ -42,25 +53,14 @@ export async function GET(request: Request) {
   const contacts = await prisma.contact.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      companyName: true,
-      status: true,
-      tags: true,
-      createdAt: true,
-      _count: { select: { projects: true, documents: true } },
-    },
+    select: CONTACT_SELECT,
   });
 
   return NextResponse.json(contacts);
-}
+});
 
 // ───────────────────────── POST : création ─────────────────────────
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -69,31 +69,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phone?: string;
-    companyName?: string;
-    status?: string;
-    tags?: unknown;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const firstName = body.firstName?.trim();
-  const lastName = body.lastName?.trim();
-  const email = body.email?.trim();
-
-  if (!firstName || !lastName || !email) {
-    return NextResponse.json(
-      { error: "firstName, lastName and email are required" },
-      { status: 400 }
-    );
-  }
+  const data = contactCreateSchema.parse(await request.json());
 
   // Gating par plan : nombre de contacts (hors archivés).
   const limit = await checkLimit(company.id, "contacts", company.plan);
@@ -104,34 +80,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const tags = Array.isArray(body.tags)
-    ? body.tags.filter((t): t is string => typeof t === "string" && t.trim() !== "")
-    : [];
-
   const contact = await prisma.contact.create({
     data: {
       companyId: company.id,
-      firstName,
-      lastName,
-      email,
-      phone: body.phone?.trim() || null,
-      companyName: body.companyName?.trim() || null,
-      status: isStatus(body.status) ? body.status : "LEAD",
-      tags,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone ?? null,
+      companyName: data.companyName ?? null,
+      address: data.address ?? null,
+      notes: sanitizeNullable(data.notes),
+      status: data.status ?? "LEAD",
+      tags: data.tags ?? [],
     },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      companyName: true,
-      status: true,
-      tags: true,
-      createdAt: true,
-      _count: { select: { projects: true, documents: true } },
-    },
+    select: CONTACT_SELECT,
   });
 
   return NextResponse.json(contact, { status: 201 });
-}
+});

@@ -2,16 +2,17 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { buildInvoiceBuffer } from "@/lib/invoice-pdf";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // GET : PDF de la facture côté CLIENT (public). Gated : disponible seulement
 // une fois la facture payée (status = PAID). documentId = cuid imprévisible.
-export async function GET(
+export const GET = withApi(async (
   _request: Request,
   { params }: { params: { documentId: string } }
-) {
+) => {
   const doc = await prisma.document.findUnique({
     where: { id: params.documentId },
     select: { id: true, status: true },
@@ -39,4 +40,4 @@ export async function GET(
       "Cache-Control": "no-store",
     },
   });
-}
+});

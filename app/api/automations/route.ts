@@ -2,17 +2,16 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
-import {
-  AUTOMATION_SELECT,
-  isTrigger,
-  buildActionsCreate,
-} from "@/lib/automations-server";
+import { AUTOMATION_SELECT, buildActionsCreate } from "@/lib/automations-server";
 import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
+import { withApi } from "@/lib/api-handler";
+import { automationCreateSchema } from "@/lib/validations";
+import { sanitizeNullable } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
 // ───────────────────────── GET : liste ─────────────────────────
-export async function GET() {
+export const GET = withApi(async () => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,10 +25,10 @@ export async function GET() {
   });
 
   return NextResponse.json(automations);
-}
+});
 
 // ───────────────────────── POST : création ─────────────────────────
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,26 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    name?: string;
-    description?: string;
-    trigger?: string;
-    isActive?: boolean;
-    actions?: unknown;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const name = body.name?.trim();
-  if (!name) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  }
-  if (!isTrigger(body.trigger)) {
-    return NextResponse.json({ error: "Invalid trigger" }, { status: 400 });
-  }
+  const data = automationCreateSchema.parse(await request.json());
 
   // Gating par plan : nombre d'automatisations (Free = 0 → toujours bloqué).
   const limit = await checkLimit(company.id, "automations", company.plan);
@@ -71,14 +51,14 @@ export async function POST(request: Request) {
   const automation = await prisma.automation.create({
     data: {
       companyId: company.id,
-      name,
-      description: body.description?.trim() || null,
-      trigger: body.trigger,
-      isActive: body.isActive ?? true,
-      actions: { create: buildActionsCreate(body.actions) },
+      name: data.name,
+      description: sanitizeNullable(data.description),
+      trigger: data.trigger,
+      isActive: data.isActive ?? true,
+      actions: { create: buildActionsCreate(data.actions) },
     },
     select: AUTOMATION_SELECT,
   });
 
   return NextResponse.json(automation, { status: 201 });
-}
+});

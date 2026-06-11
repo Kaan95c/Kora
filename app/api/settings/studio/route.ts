@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
+import { studioUpdateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
-const str = (v: unknown) =>
-  typeof v === "string" ? v.trim() || null : null;
+const orNull = (v: string | null | undefined) => (v && v.trim() ? v.trim() : null);
 
 // PUT : met à jour les informations du studio (Company), scopé companyId.
-export async function PUT(request: Request) {
+export const PUT = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,37 +19,17 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    name?: string;
-    siret?: string;
-    vatNumber?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const name = body.name?.trim();
-  if (!name) {
-    return NextResponse.json(
-      { error: "Studio name is required" },
-      { status: 400 }
-    );
-  }
+  const data = studioUpdateSchema.parse(await request.json());
 
   await prisma.company.updateMany({
     where: { id: company.id },
     data: {
-      name,
-      siret: str(body.siret),
-      vatNumber: str(body.vatNumber),
-      address: str(body.address),
-      phone: str(body.phone),
-      email: str(body.email),
+      name: data.name,
+      siret: orNull(data.siret),
+      vatNumber: orNull(data.vatNumber),
+      address: orNull(data.address),
+      phone: orNull(data.phone),
+      email: orNull(data.email),
     },
   });
 
@@ -66,4 +47,4 @@ export async function PUT(request: Request) {
   });
 
   return NextResponse.json(updated);
-}
+});

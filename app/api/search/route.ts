@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ const EMPTY = { contacts: [], projects: [], documents: [] };
  * Cherche dans Contacts (firstName/lastName/email), Projects (name) et
  * Documents (title/number). Max 5 résultats par catégorie.
  */
-export async function GET(request: Request) {
+export const GET = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -61,4 +62,4 @@ export async function GET(request: Request) {
   ]);
 
   return NextResponse.json({ contacts, projects, documents });
-}
+});

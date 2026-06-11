@@ -4,19 +4,10 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
 import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
+import { withApi } from "@/lib/api-handler";
+import { projectCreateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
-
-const PROJECT_STATUSES = [
-  "INQUIRY",
-  "FOLLOW_UP",
-  "BOOKING",
-  "ACTIVE",
-  "ARCHIVED",
-] as const;
-type ProjectStatus = (typeof PROJECT_STATUSES)[number];
-const isStatus = (v: unknown): v is ProjectStatus =>
-  typeof v === "string" && PROJECT_STATUSES.includes(v as ProjectStatus);
 
 const SELECT = {
   id: true,
@@ -31,7 +22,7 @@ const SELECT = {
 } satisfies Prisma.ProjectSelect;
 
 // ───────────────────────── GET : liste ─────────────────────────
-export async function GET() {
+export const GET = withApi(async () => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -45,10 +36,10 @@ export async function GET() {
   });
 
   return NextResponse.json(projects);
-}
+});
 
 // ───────────────────────── POST : création ─────────────────────────
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -57,22 +48,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    name?: string;
-    contactId?: string | null;
-    status?: string;
-    startDate?: string | null;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const name = body.name?.trim();
-  if (!name) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  }
+  const data = projectCreateSchema.parse(await request.json());
 
   // Gating par plan : nombre de projets.
   const limit = await checkLimit(company.id, "projects", company.plan);
@@ -85,9 +61,9 @@ export async function POST(request: Request) {
 
   // Contact optionnel, validé anti cross-tenant.
   let contactId: string | null = null;
-  if (body.contactId) {
+  if (data.contactId) {
     const c = await prisma.contact.findFirst({
-      where: { id: body.contactId, companyId: company.id },
+      where: { id: data.contactId, companyId: company.id },
       select: { id: true },
     });
     if (!c) {
@@ -96,19 +72,17 @@ export async function POST(request: Request) {
     contactId = c.id;
   }
 
-  const status: ProjectStatus = isStatus(body.status) ? body.status : "ACTIVE";
-
   let startDate: Date | null = null;
-  if (typeof body.startDate === "string" && body.startDate.trim() !== "") {
-    const d = new Date(body.startDate);
+  if (data.startDate && data.startDate.trim() !== "") {
+    const d = new Date(data.startDate);
     if (!Number.isNaN(d.getTime())) startDate = d;
   }
 
   const project = await prisma.project.create({
     data: {
       companyId: company.id,
-      name,
-      status,
+      name: data.name,
+      status: data.status ?? "ACTIVE",
       contactId,
       startDate,
     },
@@ -116,4 +90,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(project, { status: 201 });
-}
+});

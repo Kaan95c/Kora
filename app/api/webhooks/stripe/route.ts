@@ -7,6 +7,8 @@ import { getStripe } from "@/lib/stripe";
 import { planFromPriceId } from "@/lib/billing-server";
 import { sendEmail } from "@/lib/email";
 import { PaymentReceiptEmail } from "@/components/emails/PaymentReceiptEmail";
+import { withApi } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -59,7 +61,7 @@ async function syncSubscription(sub: Stripe.Subscription) {
 }
 
 // POST : reçoit les events Stripe. Vérifie la signature puis traite payment_intent.succeeded.
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const sig = request.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!sig || !secret) {
@@ -73,6 +75,7 @@ export async function POST(request: Request) {
   try {
     event = stripe.webhooks.constructEvent(raw, sig, secret);
   } catch {
+    logger.warn("stripe_webhook_bad_signature", {});
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -90,6 +93,12 @@ export async function POST(request: Request) {
         paidAt: new Date(),
         ...(method ? { method } : {}),
       },
+    });
+
+    logger.info("stripe_payment_succeeded", {
+      paymentIntent: pi.id,
+      documentId: documentId ?? null,
+      amount: pi.amount,
     });
 
     // 2) La facture liée → PAID (scopé company via metadata) + reçu par email.
@@ -166,4 +175,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ received: true });
-}
+});

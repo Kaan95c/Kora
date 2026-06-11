@@ -3,27 +3,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { withApi } from "@/lib/api-handler";
+import { profileUpdateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
 // PUT : met à jour le nom du user (Prisma) + le displayName Supabase (admin).
-export async function PUT(request: Request) {
+export const PUT = withApi(async (request: Request) => {
   const { user } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { name?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const name = body.name?.trim();
-  if (!name) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  }
+  const { name } = profileUpdateSchema.parse(await request.json());
 
   // Source de vérité applicative (scopé au user courant via supabaseId).
   await prisma.user.updateMany({
@@ -38,4 +30,4 @@ export async function PUT(request: Request) {
   });
 
   return NextResponse.json({ name });
-}
+});

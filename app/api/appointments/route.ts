@@ -3,6 +3,9 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
+import { appointmentCreateSchema } from "@/lib/validations";
+import { sanitizeNullable } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +21,7 @@ const SELECT = {
   sessionType: { select: { name: true, color: true } },
 } satisfies Prisma.AppointmentSelect;
 
-function parseDate(v: unknown): Date | null {
+function parseDate(v: string | null | undefined): Date | null {
   if (typeof v !== "string" || v.trim() === "") return null;
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
@@ -43,7 +46,7 @@ async function belongsToCompany(
 }
 
 // ───────────────────────── GET : liste ─────────────────────────
-export async function GET() {
+export const GET = withApi(async () => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -57,10 +60,10 @@ export async function GET() {
   });
 
   return NextResponse.json(appointments);
-}
+});
 
 // ───────────────────────── POST : création ─────────────────────────
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -69,42 +72,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    title?: string;
-    startAt?: string;
-    endAt?: string | null;
-    notes?: string;
-    contactId?: string | null;
-    sessionTypeId?: string | null;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const data = appointmentCreateSchema.parse(await request.json());
 
-  const title = body.title?.trim();
-  if (!title) {
-    return NextResponse.json({ error: "Title is required" }, { status: 400 });
-  }
-
-  const startAt = parseDate(body.startAt);
+  const startAt = parseDate(data.startAt);
   if (!startAt) {
     return NextResponse.json(
       { error: "Valid start date is required" },
       { status: 400 }
     );
   }
-  const endAt = parseDate(body.endAt);
+  const endAt = parseDate(data.endAt);
 
-  if (body.contactId) {
-    if (!(await belongsToCompany("contact", body.contactId, company.id))) {
+  if (data.contactId) {
+    if (!(await belongsToCompany("contact", data.contactId, company.id))) {
       return NextResponse.json({ error: "Invalid contact" }, { status: 400 });
     }
   }
-  if (body.sessionTypeId) {
+  if (data.sessionTypeId) {
     if (
-      !(await belongsToCompany("sessionType", body.sessionTypeId, company.id))
+      !(await belongsToCompany("sessionType", data.sessionTypeId, company.id))
     ) {
       return NextResponse.json(
         { error: "Invalid session type" },
@@ -116,15 +102,15 @@ export async function POST(request: Request) {
   const appointment = await prisma.appointment.create({
     data: {
       companyId: company.id,
-      title,
+      title: data.title,
       startAt,
       endAt: endAt && endAt > startAt ? endAt : null,
-      notes: body.notes?.trim() || null,
-      contactId: body.contactId || null,
-      sessionTypeId: body.sessionTypeId || null,
+      notes: sanitizeNullable(data.notes),
+      contactId: data.contactId || null,
+      sessionTypeId: data.sessionTypeId || null,
     },
     select: SELECT,
   });
 
   return NextResponse.json(appointment, { status: 201 });
-}
+});

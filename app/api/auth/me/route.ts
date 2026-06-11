@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getAuthedCompany } from "@/lib/auth";
 import { planLimitsForClient } from "@/lib/plan-limits";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
  * Renvoie l'utilisateur Supabase courant + sa Company.
  * Consommé par le AuthProvider côté client.
  */
-export async function GET() {
+export const GET = withApi(async () => {
   const { user, company } = await getAuthedCompany();
 
   if (!user) {
@@ -25,4 +26,4 @@ export async function GET() {
     company,
     limits: company ? planLimitsForClient(company.plan) : null,
   });
-}
+});

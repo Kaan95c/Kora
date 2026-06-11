@@ -3,13 +3,13 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
+import { brandingUpdateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
-const HEX = /^#[0-9a-fA-F]{6}$/;
-
 // PUT : met à jour l'identité visuelle (couleur, logo, préfixes), scopé companyId.
-export async function PUT(request: Request) {
+export const PUT = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,48 +18,21 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    primaryColor?: string;
-    logoUrl?: string | null;
-    invoicePrefix?: string;
-    quotePrefix?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = brandingUpdateSchema.parse(await request.json());
 
   const data: Prisma.CompanyUpdateInput = {};
-
-  if (body.primaryColor !== undefined) {
-    if (!HEX.test(body.primaryColor)) {
-      return NextResponse.json(
-        { error: "Invalid color (expected #RRGGBB)" },
-        { status: 400 }
-      );
-    }
-    data.primaryColor = body.primaryColor;
+  if (parsed.primaryColor !== undefined) data.primaryColor = parsed.primaryColor;
+  if (parsed.logoUrl !== undefined) {
+    data.logoUrl = parsed.logoUrl && parsed.logoUrl.trim() ? parsed.logoUrl.trim() : null;
   }
-  if (body.logoUrl !== undefined) {
-    data.logoUrl =
-      typeof body.logoUrl === "string" && body.logoUrl.trim()
-        ? body.logoUrl.trim()
-        : null;
+  if (parsed.invoicePrefix !== undefined && parsed.invoicePrefix.trim()) {
+    data.invoicePrefix = parsed.invoicePrefix.trim();
   }
-  if (body.invoicePrefix !== undefined) {
-    const v = body.invoicePrefix.trim();
-    if (v) data.invoicePrefix = v;
-  }
-  if (body.quotePrefix !== undefined) {
-    const v = body.quotePrefix.trim();
-    if (v) data.quotePrefix = v;
+  if (parsed.quotePrefix !== undefined && parsed.quotePrefix.trim()) {
+    data.quotePrefix = parsed.quotePrefix.trim();
   }
 
-  await prisma.company.updateMany({
-    where: { id: company.id },
-    data,
-  });
+  await prisma.company.updateMany({ where: { id: company.id }, data });
 
   const updated = await prisma.company.findUnique({
     where: { id: company.id },
@@ -73,4 +46,4 @@ export async function PUT(request: Request) {
   });
 
   return NextResponse.json(updated);
-}
+});

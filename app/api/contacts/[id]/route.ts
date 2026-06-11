@@ -5,29 +5,28 @@ import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
 import { signClientToken, clientPortalPath } from "@/lib/client-portal";
 import { hasClientPortal } from "@/lib/plan-limits";
+import { withApi } from "@/lib/api-handler";
+import { contactUpdateSchema } from "@/lib/validations";
+import { sanitizeNullable } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
+
+type RouteCtx = { params: { id: string } };
 
 /** Reconstruit l'origin de la requête (gère les proxys via x-forwarded-*). */
 function requestOrigin(request: Request): string {
   const url = new URL(request.url);
-  const proto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  const proto =
+    request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
   const host =
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? url.host;
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    url.host;
   return `${proto}://${host}`;
 }
 
-const CONTACT_STATUSES = ["LEAD", "PROSPECT", "CLIENT", "ARCHIVED"] as const;
-type ContactStatus = (typeof CONTACT_STATUSES)[number];
-
-const isStatus = (v: unknown): v is ContactStatus =>
-  typeof v === "string" && CONTACT_STATUSES.includes(v as ContactStatus);
-
 // ───────────────────────── GET : détail + relations ─────────────────────────
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export const GET = withApi(async (request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -82,21 +81,16 @@ export async function GET(
   }
 
   // Portail client = fonctionnalité gatée par plan (Free = désactivé).
-  // Lien du portail (token signé, stateless — voir lib/client-portal) seulement
-  // si le plan l'autorise ; sinon portalUrl = null → encart upgrade côté UI.
   const clientPortal = hasClientPortal(company.plan);
   const portalUrl = clientPortal
     ? requestOrigin(request) + clientPortalPath(signClientToken(contact.id))
     : null;
 
   return NextResponse.json({ ...contact, portalUrl, clientPortal });
-}
+});
 
-// ───────────────────────── PUT : édition ─────────────────────────
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+// ───────────────────────── PUT : édition (partielle) ─────────────────────────
+export const PUT = withApi(async (request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -105,67 +99,20 @@ export async function PUT(
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = contactUpdateSchema.parse(await request.json());
 
-  // On ne met à jour que les champs explicitement fournis (PUT partiel possible
-  // depuis les onglets Infos / Notes / tags).
+  // On ne met à jour que les champs explicitement fournis.
   const data: Prisma.ContactUpdateInput = {};
-
-  const str = (v: unknown) =>
-    typeof v === "string" ? v.trim() || null : undefined;
-
-  if ("firstName" in body) {
-    const v = typeof body.firstName === "string" ? body.firstName.trim() : "";
-    if (!v) {
-      return NextResponse.json(
-        { error: "firstName cannot be empty" },
-        { status: 400 }
-      );
-    }
-    data.firstName = v;
-  }
-  if ("lastName" in body) {
-    const v = typeof body.lastName === "string" ? body.lastName.trim() : "";
-    if (!v) {
-      return NextResponse.json(
-        { error: "lastName cannot be empty" },
-        { status: 400 }
-      );
-    }
-    data.lastName = v;
-  }
-  if ("email" in body) {
-    const v = typeof body.email === "string" ? body.email.trim() : "";
-    if (!v) {
-      return NextResponse.json(
-        { error: "email cannot be empty" },
-        { status: 400 }
-      );
-    }
-    data.email = v;
-  }
-  if ("phone" in body) data.phone = str(body.phone);
-  if ("companyName" in body) data.companyName = str(body.companyName);
-  if ("address" in body) data.address = str(body.address);
-  if ("notes" in body) data.notes = str(body.notes);
-  if ("status" in body) {
-    if (!isStatus(body.status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
-    data.status = body.status;
-  }
-  if ("tags" in body) {
-    data.tags = Array.isArray(body.tags)
-      ? body.tags.filter(
-          (t): t is string => typeof t === "string" && t.trim() !== ""
-        )
-      : [];
-  }
+  if (parsed.firstName !== undefined) data.firstName = parsed.firstName;
+  if (parsed.lastName !== undefined) data.lastName = parsed.lastName;
+  if (parsed.email !== undefined) data.email = parsed.email;
+  if (parsed.phone !== undefined) data.phone = parsed.phone ?? null;
+  if (parsed.companyName !== undefined)
+    data.companyName = parsed.companyName ?? null;
+  if (parsed.address !== undefined) data.address = parsed.address ?? null;
+  if (parsed.notes !== undefined) data.notes = sanitizeNullable(parsed.notes);
+  if (parsed.status !== undefined) data.status = parsed.status;
+  if (parsed.tags !== undefined) data.tags = parsed.tags;
 
   // updateMany scopé companyId → impossible de modifier le contact d'une autre company.
   const updated = await prisma.contact.updateMany({
@@ -194,13 +141,10 @@ export async function PUT(
   });
 
   return NextResponse.json(contact);
-}
+});
 
-// ───────────────────────── DELETE : soft-delete → ARCHIVED ─────────────────────────
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
+// ───────────────────── DELETE : soft-delete → ARCHIVED ─────────────────────
+export const DELETE = withApi(async (_request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -219,4 +163,4 @@ export async function DELETE(
   }
 
   return NextResponse.json({ id: params.id, status: "ARCHIVED" });
-}
+});

@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export const GET = withApi(async (request: Request) => {
   const { searchParams } = new URL(request.url);
   const limitParam = searchParams.get("limit");
   const parsed = limitParam ? parseInt(limitParam, 10) : 3;
@@ -33,4 +34,4 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json(projects);
-}
+});

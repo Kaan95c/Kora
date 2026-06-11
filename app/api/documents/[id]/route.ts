@@ -2,19 +2,15 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
+import { documentStatusSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
-const STATUSES = ["DRAFT", "SENT", "SIGNED", "PAID"] as const;
-type DocStatus = (typeof STATUSES)[number];
-const isStatus = (v: unknown): v is DocStatus =>
-  typeof v === "string" && STATUSES.includes(v as DocStatus);
+type RouteCtx = { params: { id: string } };
 
-// ───────────────────────── PATCH : changement de statut ─────────────────────────
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+// ───────────────────── PATCH : changement de statut ─────────────────────
+export const PATCH = withApi(async (request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,17 +19,7 @@ export async function PATCH(
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: { status?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  if (!isStatus(body.status)) {
-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-  }
-  const status = body.status;
+  const { status } = documentStatusSchema.parse(await request.json());
 
   // updateMany scopé companyId → impossible de modifier le document d'une autre company.
   const updated = await prisma.document.updateMany({
@@ -50,13 +36,10 @@ export async function PATCH(
   }
 
   return NextResponse.json({ id: params.id, status });
-}
+});
 
 // ───────────────────────── DELETE : suppression ─────────────────────────
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
+export const DELETE = withApi(async (_request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,4 +57,4 @@ export async function DELETE(
   }
 
   return NextResponse.json({ id: params.id, deleted: true });
-}
+});

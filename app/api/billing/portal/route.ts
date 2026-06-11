@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAuthedCompany } from "@/lib/auth";
 import { getStripe } from "@/lib/stripe";
 import { originFromRequest } from "@/lib/billing-server";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,7 +12,7 @@ export const runtime = "nodejs";
  * Ouvre le Stripe Customer Portal (gérer / changer / annuler l'abonnement,
  * mettre à jour la CB, télécharger les factures). Renvoie l'URL de redirection.
  */
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user || !company) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,4 +34,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ url: session.url });
-}
+});

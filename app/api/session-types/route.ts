@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
+import { sessionTypeCreateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -13,16 +15,7 @@ const SELECT = {
   price: true,
 } as const;
 
-function toInt(v: unknown, fallback: number): number {
-  if (typeof v === "number" && Number.isFinite(v)) return Math.round(v);
-  if (typeof v === "string" && v.trim() !== "") {
-    const n = Number(v);
-    if (Number.isFinite(n)) return Math.round(n);
-  }
-  return fallback;
-}
-
-function toPrice(v: unknown): number | null {
+function toPrice(v: number | string | null | undefined): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string" && v.trim() !== "") {
     const n = Number(v);
@@ -32,7 +25,7 @@ function toPrice(v: unknown): number | null {
 }
 
 // ───────────────────────── GET : liste ─────────────────────────
-export async function GET() {
+export const GET = withApi(async () => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -46,10 +39,10 @@ export async function GET() {
   });
 
   return NextResponse.json(types);
-}
+});
 
 // ───────────────────────── POST : création ─────────────────────────
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,33 +51,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    name?: string;
-    duration?: unknown;
-    color?: string;
-    price?: unknown;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const name = body.name?.trim();
-  if (!name) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  }
+  const data = sessionTypeCreateSchema.parse(await request.json());
 
   const type = await prisma.sessionType.create({
     data: {
       companyId: company.id,
-      name,
-      duration: Math.max(5, toInt(body.duration, 30)),
-      color: typeof body.color === "string" && body.color ? body.color : "#52634c",
-      price: toPrice(body.price),
+      name: data.name,
+      duration: Math.max(5, data.duration ?? 30),
+      color: data.color ?? "#52634c",
+      price: toPrice(data.price),
     },
     select: SELECT,
   });
 
   return NextResponse.json(type, { status: 201 });
-}
+});

@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 
 import { getAuthedCompany } from "@/lib/auth";
 import { buildInvoiceBuffer } from "@/lib/invoice-pdf";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // GET : PDF de la facture (authed, scopé company) → téléchargement.
-export async function GET(
+export const GET = withApi(async (
   _request: Request,
   { params }: { params: { id: string } }
-) {
+) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -31,4 +32,4 @@ export async function GET(
       "Cache-Control": "no-store",
     },
   });
-}
+});

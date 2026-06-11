@@ -3,11 +3,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
+import { withApi } from "@/lib/api-handler";
+import { messageCreateSchema } from "@/lib/validations";
+import { sanitizeText, sanitizeNullable } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
-// ───────────────────────── GET : conversations groupées par contact ─────────────────────────
-export async function GET() {
+// ──────────────── GET : conversations groupées par contact ────────────────
+export const GET = withApi(async () => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -69,10 +72,10 @@ export async function GET() {
   }
 
   return NextResponse.json(Array.from(map.values()));
-}
+});
 
-// ───────────────────────── POST : créer + envoyer un message ─────────────────────────
-export async function POST(request: Request) {
+// ─────────────────── POST : créer + envoyer un message ───────────────────
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -81,29 +84,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    subject?: string;
-    body?: string;
-    contactId?: string;
-    projectId?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const data = messageCreateSchema.parse(await request.json());
 
-  const text = body.body?.trim();
-  if (!text) {
-    return NextResponse.json({ error: "Message body is required" }, { status: 400 });
-  }
-  if (!body.contactId) {
-    return NextResponse.json({ error: "A recipient is required" }, { status: 400 });
+  // Sanitization du texte libre (le corps part dans un email → défense XSS).
+  const body = sanitizeText(data.body);
+  const subject = sanitizeNullable(data.subject);
+  if (!body) {
+    return NextResponse.json(
+      { error: "Le message est requis." },
+      { status: 400 }
+    );
   }
 
   // Le contact doit appartenir à la company (anti cross-tenant).
   const contact = await prisma.contact.findFirst({
-    where: { id: body.contactId, companyId: company.id },
+    where: { id: data.contactId, companyId: company.id },
     select: { id: true, email: true },
   });
   if (!contact) {
@@ -112,9 +107,9 @@ export async function POST(request: Request) {
 
   // Projet optionnel, scopé lui aussi.
   let projectId: string | null = null;
-  if (body.projectId) {
+  if (data.projectId) {
     const project = await prisma.project.findFirst({
-      where: { id: body.projectId, companyId: company.id },
+      where: { id: data.projectId, companyId: company.id },
       select: { id: true },
     });
     if (project) projectId = project.id;
@@ -127,8 +122,8 @@ export async function POST(request: Request) {
       projectId,
       direction: "OUTBOUND",
       status: "SENT",
-      subject: body.subject?.trim() || null,
-      body: text,
+      subject,
+      body,
     },
     select: {
       id: true,
@@ -151,4 +146,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(message, { status: 201 });
-}
+});

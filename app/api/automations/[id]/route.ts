@@ -3,19 +3,17 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
-import {
-  AUTOMATION_SELECT,
-  isTrigger,
-  buildActionsCreate,
-} from "@/lib/automations-server";
+import { AUTOMATION_SELECT, buildActionsCreate } from "@/lib/automations-server";
+import { withApi } from "@/lib/api-handler";
+import { automationPatchSchema } from "@/lib/validations";
+import { sanitizeNullable } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
-// ───────────────────────── PATCH : toggle isActive OU update complet ─────────────────────────
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+type RouteCtx = { params: { id: string } };
+
+// ──────────── PATCH : toggle isActive OU update complet ────────────
+export const PATCH = withApi(async (request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,42 +31,19 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = automationPatchSchema.parse(await request.json());
 
   const data: Prisma.AutomationUpdateInput = {};
-
-  if ("name" in body) {
-    const v = typeof body.name === "string" ? body.name.trim() : "";
-    if (!v) {
-      return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
-    }
-    data.name = v;
-  }
-  if ("description" in body) {
-    data.description =
-      typeof body.description === "string" && body.description.trim()
-        ? body.description.trim()
-        : null;
-  }
-  if ("trigger" in body) {
-    if (!isTrigger(body.trigger)) {
-      return NextResponse.json({ error: "Invalid trigger" }, { status: 400 });
-    }
-    data.trigger = body.trigger;
-  }
-  if ("isActive" in body && typeof body.isActive === "boolean") {
-    data.isActive = body.isActive;
-  }
+  if (parsed.name !== undefined) data.name = parsed.name;
+  if (parsed.description !== undefined)
+    data.description = sanitizeNullable(parsed.description);
+  if (parsed.trigger !== undefined) data.trigger = parsed.trigger;
+  if (parsed.isActive !== undefined) data.isActive = parsed.isActive;
   // Remplacement complet des actions si fournies.
-  if ("actions" in body) {
+  if (parsed.actions !== undefined) {
     data.actions = {
       deleteMany: {},
-      create: buildActionsCreate(body.actions),
+      create: buildActionsCreate(parsed.actions),
     };
   }
 
@@ -79,13 +54,10 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});
 
 // ───────────────────────── DELETE ─────────────────────────
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
+export const DELETE = withApi(async (_request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -104,4 +76,4 @@ export async function DELETE(
   }
 
   return NextResponse.json({ id: params.id, deleted: true });
-}
+});

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ const MONTH_LABELS = [
   "Dec",
 ];
 
-export async function GET() {
+export const GET = withApi(async () => {
   const now = new Date();
   // 12 buckets : de 11 mois en arrière jusqu'au mois courant inclus.
   const buckets = Array.from({ length: 12 }, (_, i) => {
@@ -61,4 +62,4 @@ export async function GET() {
   });
 
   return NextResponse.json(data);
-}
+});

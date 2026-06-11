@@ -3,14 +3,15 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
+import { sessionTypeUpdateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
+type RouteCtx = { params: { id: string } };
+
 // ───────────────────────── PATCH : édition ─────────────────────────
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export const PATCH = withApi(async (request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,35 +20,17 @@ export async function PATCH(
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const parsed = sessionTypeUpdateSchema.parse(await request.json());
 
   const data: Prisma.SessionTypeUpdateInput = {};
-  if ("name" in body) {
-    const v = typeof body.name === "string" ? body.name.trim() : "";
-    if (!v) {
-      return NextResponse.json(
-        { error: "Name cannot be empty" },
-        { status: 400 }
-      );
-    }
-    data.name = v;
-  }
-  if ("duration" in body) {
-    const n = Number(body.duration);
-    if (Number.isFinite(n)) data.duration = Math.max(5, Math.round(n));
-  }
-  if ("color" in body && typeof body.color === "string" && body.color) {
-    data.color = body.color;
-  }
-  if ("price" in body) {
-    const n = Number(body.price);
+  if (parsed.name !== undefined) data.name = parsed.name;
+  if (parsed.duration !== undefined) data.duration = Math.max(5, parsed.duration);
+  if (parsed.color !== undefined) data.color = parsed.color;
+  if (parsed.price !== undefined) {
+    const n =
+      typeof parsed.price === "number" ? parsed.price : Number(parsed.price);
     data.price =
-      body.price === null || body.price === "" || !Number.isFinite(n)
+      parsed.price === null || parsed.price === "" || !Number.isFinite(n)
         ? null
         : n;
   }
@@ -62,13 +45,10 @@ export async function PATCH(
   }
 
   return NextResponse.json({ id: params.id, ...data });
-}
+});
 
 // ───────────────────────── DELETE ─────────────────────────
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
+export const DELETE = withApi(async (_request: Request, { params }: RouteCtx) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -77,7 +57,7 @@ export async function DELETE(
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  // onDelete: SetNull → les appointments liés gardent leur créneau (sessionTypeId = null).
+  // onDelete: SetNull → les appointments liés gardent leur créneau.
   const deleted = await prisma.sessionType.deleteMany({
     where: { id: params.id, companyId: company.id },
   });
@@ -87,4 +67,4 @@ export async function DELETE(
   }
 
   return NextResponse.json({ id: params.id, deleted: true });
-}
+});

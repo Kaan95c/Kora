@@ -6,14 +6,17 @@ import { getAuthedCompany } from "@/lib/auth";
 import { ensurePaymentIntent } from "@/lib/payments-server";
 import { sendEmail } from "@/lib/email";
 import { InvoiceEmail } from "@/components/emails/InvoiceEmail";
+import { withApi } from "@/lib/api-handler";
+import { paymentIntentSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
 const eur = (n: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n);
 
-// POST : génère (ou réutilise) un PaymentIntent + envoie la facture par email, et renvoie l'URL de paiement.
-export async function POST(request: Request) {
+// POST : génère (ou réutilise) un PaymentIntent + envoie la facture par email,
+// et renvoie l'URL de paiement.
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,19 +25,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: { documentId?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  if (!body.documentId) {
-    return NextResponse.json({ error: "documentId is required" }, { status: 400 });
-  }
+  const { documentId } = paymentIntentSchema.parse(await request.json());
 
   const doc = await prisma.document.findFirst({
-    where: { id: body.documentId, companyId: company.id },
+    where: { id: documentId, companyId: company.id },
     select: {
       id: true,
       type: true,
@@ -94,4 +88,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ url, emailed });
-}
+});

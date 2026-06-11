@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getAuthedCompany } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ const ALLOWED: Record<string, string> = {
 };
 
 // POST : upload du logo dans le bucket Storage "logos" → renvoie l'URL publique.
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -81,4 +82,4 @@ export async function POST(request: Request) {
   } = admin.storage.from(BUCKET).getPublicUrl(path);
 
   return NextResponse.json({ url: publicUrl });
-}
+});

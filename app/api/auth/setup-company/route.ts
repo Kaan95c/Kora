@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 import { prisma } from "@/lib/prisma";
+import { withApi } from "@/lib/api-handler";
+import { setupCompanySchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -11,28 +14,10 @@ export const dynamic = "force-dynamic";
  * de créer quoi que ce soit, et on auto-confirme l'email pour ouvrir la
  * session immédiatement (flux trial). Idempotent.
  */
-export async function POST(request: Request) {
-  let body: {
-    userId?: string;
-    fullName?: string;
-    studioName?: string;
-    email?: string;
-  };
-
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const { userId, fullName, studioName, email } = body;
-
-  if (!userId || !studioName || !email) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    );
-  }
+export const POST = withApi(async (request: Request) => {
+  const { userId, fullName, studioName, email } = setupCompanySchema.parse(
+    await request.json()
+  );
 
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -90,5 +75,11 @@ export async function POST(request: Request) {
     return { companyId: company.id, userId: user.id };
   });
 
+  logger.info("account_created", {
+    companyId: result.companyId,
+    userId: result.userId,
+    email,
+  });
+
   return NextResponse.json(result);
-}
+});

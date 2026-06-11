@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
+import { withApi } from "@/lib/api-handler";
 
 export const dynamic = "force-dynamic";
 
 // GET : conversation complète d'un contact (triée ASC) + marque les INBOUND comme lus.
-export async function GET(
+export const GET = withApi(async (
   _request: Request,
   { params }: { params: { contactId: string } }
-) {
+) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -51,4 +52,4 @@ export async function GET(
   });
 
   return NextResponse.json({ contact, messages });
-}
+});

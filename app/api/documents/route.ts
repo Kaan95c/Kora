@@ -4,6 +4,8 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthedCompany } from "@/lib/auth";
 import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
+import { withApi } from "@/lib/api-handler";
+import { documentCreateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +13,6 @@ const TYPES = ["INVOICE", "QUOTE", "CONTRACT", "PROPOSAL"] as const;
 const STATUSES = ["DRAFT", "SENT", "SIGNED", "PAID"] as const;
 type DocType = (typeof TYPES)[number];
 type DocStatus = (typeof STATUSES)[number];
-
 const isType = (v: unknown): v is DocType =>
   typeof v === "string" && TYPES.includes(v as DocType);
 const isStatus = (v: unknown): v is DocStatus =>
@@ -33,7 +34,7 @@ const SELECT = {
 } satisfies Prisma.DocumentSelect;
 
 // ───────────────────────── GET : liste ─────────────────────────
-export async function GET(request: Request) {
+export const GET = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -62,10 +63,10 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json(documents);
-}
+});
 
 // ───────────────────────── POST : création ─────────────────────────
-export async function POST(request: Request) {
+export const POST = withApi(async (request: Request) => {
   const { user, company } = await getAuthedCompany();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,29 +75,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No company" }, { status: 403 });
   }
 
-  let body: {
-    title?: string;
-    number?: string;
-    type?: string;
-    status?: string;
-    total?: unknown;
-    contactId?: string | null;
-    projectId?: string | null;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const title = body.title?.trim();
-  if (!title) {
-    return NextResponse.json({ error: "Title is required" }, { status: 400 });
-  }
-  if (!isType(body.type)) {
-    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
-  }
-  const status: DocStatus = isStatus(body.status) ? body.status : "DRAFT";
+  const data = documentCreateSchema.parse(await request.json());
+  const status: DocStatus = data.status ?? "DRAFT";
 
   // Gating par plan : nombre de documents.
   const limit = await checkLimit(company.id, "documents", company.plan);
@@ -109,18 +89,18 @@ export async function POST(request: Request) {
 
   // Montant : nombre, ou null si vide/invalide.
   let total: number | null = null;
-  if (typeof body.total === "number" && Number.isFinite(body.total)) {
-    total = body.total;
-  } else if (typeof body.total === "string" && body.total.trim() !== "") {
-    const n = Number(body.total);
+  if (typeof data.total === "number" && Number.isFinite(data.total)) {
+    total = data.total;
+  } else if (typeof data.total === "string" && data.total.trim() !== "") {
+    const n = Number(data.total);
     if (Number.isFinite(n)) total = n;
   }
 
   // Validation anti cross-tenant : le contact/projet doit appartenir à la company.
   let contactId: string | null = null;
-  if (body.contactId) {
+  if (data.contactId) {
     const c = await prisma.contact.findFirst({
-      where: { id: body.contactId, companyId: company.id },
+      where: { id: data.contactId, companyId: company.id },
       select: { id: true },
     });
     if (!c) {
@@ -130,9 +110,9 @@ export async function POST(request: Request) {
   }
 
   let projectId: string | null = null;
-  if (body.projectId) {
+  if (data.projectId) {
     const p = await prisma.project.findFirst({
-      where: { id: body.projectId, companyId: company.id },
+      where: { id: data.projectId, companyId: company.id },
       select: { id: true },
     });
     if (!p) {
@@ -144,9 +124,9 @@ export async function POST(request: Request) {
   const document = await prisma.document.create({
     data: {
       companyId: company.id,
-      title,
-      number: body.number?.trim() || null,
-      type: body.type,
+      title: data.title,
+      number: data.number ?? null,
+      type: data.type,
       status,
       total,
       signedAt: status === "SIGNED" ? new Date() : null,
@@ -157,4 +137,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(document, { status: 201 });
-}
+});
