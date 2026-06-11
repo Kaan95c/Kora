@@ -1,26 +1,25 @@
-import DOMPurify from "isomorphic-dompurify";
-
 /**
  * Nettoie un texte libre (notes, corps de message, sujet) avant stockage.
  *
- * Le rendu se fait déjà via React / react-email (qui ré-échappent), donc le
- * risque XSS est faible — ceci est une défense en profondeur. On RETIRE tout
- * HTML/JS (`ALLOWED_TAGS: []`) puis on redécode les entités de base pour garder
- * un texte brut lisible (sinon « a & b » serait stocké « a &amp; b »).
+ * Défense en profondeur : le rendu passe déjà par React / react-email (qui
+ * échappent automatiquement). On retire ici tout balisage HTML **sans
+ * dépendance DOM** (jsdom / isomorphic-dompurify se bundlent mal dans le
+ * runtime serverless Vercel → 500 à l'import sur contacts/appointments/...).
+ * Suffisant ici car l'objectif est de retirer TOUT tag, pas d'en autoriser.
  */
+
+// Retire les balises bien formées (commençant par une lettre ou « /lettre »).
+// Un « < » ou « > » légitime dans le texte (ex. « 5 < 3 ») n'est pas touché.
+function stripTags(input: string): string {
+  return input
+    // <script>/<style> + leur contenu
+    .replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+    // toute autre balise <tag …> ou </tag>
+    .replace(/<\/?[a-zA-Z][^>]*>/g, "");
+}
+
 export function sanitizeText(input: string): string {
-  const stripped = DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-    KEEP_CONTENT: true,
-  });
-  return stripped
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
+  return stripTags(input).trim();
 }
 
 /** Variante optionnelle : renvoie `null` si vide/absent après nettoyage. */
