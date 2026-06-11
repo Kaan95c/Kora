@@ -16,7 +16,7 @@ export const GET = withApi(async () => {
   if (!company) {
     return NextResponse.json({
       monthlyRevenue: 0,
-      revenueGrowth: 12,
+      revenueGrowth: 0,
       activeProjects: 0,
       projectsDueThisWeek: 0,
       pendingDocuments: 0,
@@ -27,11 +27,13 @@ export const GET = withApi(async () => {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const weekFromNow = new Date(now);
   weekFromNow.setDate(weekFromNow.getDate() + 7);
 
   const [
     paidThisMonth,
+    paidPrevMonth,
     activeProjects,
     projectsDueThisWeek,
     pendingDocuments,
@@ -43,6 +45,14 @@ export const GET = withApi(async () => {
         companyId: company.id,
         status: "PAID",
         paidAt: { gte: monthStart, lt: monthEnd },
+      },
+    }),
+    prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        companyId: company.id,
+        status: "PAID",
+        paidAt: { gte: prevMonthStart, lt: monthStart },
       },
     }),
     prisma.project.count({
@@ -59,9 +69,20 @@ export const GET = withApi(async () => {
     }),
   ]);
 
+  // Croissance réelle mois courant vs précédent (division par zéro → +100% si
+  // on part de 0 avec du revenu ce mois, sinon 0). Arrondi à 1 décimale.
+  const current = paidThisMonth._sum.amount ?? 0;
+  const prev = paidPrevMonth._sum.amount ?? 0;
+  const revenueGrowth =
+    prev === 0
+      ? current > 0
+        ? 100
+        : 0
+      : Math.round(((current - prev) / prev) * 1000) / 10;
+
   return NextResponse.json({
-    monthlyRevenue: paidThisMonth._sum.amount ?? 0,
-    revenueGrowth: 12,
+    monthlyRevenue: current,
+    revenueGrowth,
     activeProjects,
     projectsDueThisWeek,
     pendingDocuments,

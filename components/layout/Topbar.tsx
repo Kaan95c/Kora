@@ -101,6 +101,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
         <button
           type="button"
+          onClick={() => router.push("/projects?new=1")}
           className="font-inter hidden rounded-lg bg-primary px-[18px] py-2.5 text-sm font-medium text-white transition-all duration-150 hover:-translate-y-px hover:shadow-card md:block"
         >
           New Project

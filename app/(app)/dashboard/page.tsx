@@ -186,8 +186,13 @@ export default function DashboardPage() {
           <p className="font-manrope mt-3 text-4xl font-semibold text-[#1b1c1a]">
             ${metrics.monthlyRevenue.toLocaleString()}
           </p>
-          <p className="font-inter mt-2 text-xs text-[#52634c]">
-            ↗ {metrics.revenueGrowth}% from last month
+          <p
+            className={`font-inter mt-2 text-xs ${
+              metrics.revenueGrowth >= 0 ? "text-[#52634c]" : "text-[#ba1a1a]"
+            }`}
+          >
+            {metrics.revenueGrowth >= 0 ? "↗" : "↘"}{" "}
+            {Math.abs(metrics.revenueGrowth)}% from last month
           </p>
         </div>
 

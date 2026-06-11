@@ -333,8 +333,21 @@ export default function RegisterPage() {
           </form>
 
           <p className="font-inter mt-4 text-center text-xs text-[#444841]">
-            By creating an account, you agree to our Terms of Service and
-            Privacy Policy.
+            By creating an account, you agree to our{" "}
+            <Link
+              href="/legal/cgv"
+              className="font-medium text-[#52634c] hover:underline"
+            >
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/legal/privacy"
+              className="font-medium text-[#52634c] hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            .
           </p>
 
           <p className="font-inter mt-6 text-center text-sm text-[#444841]">
