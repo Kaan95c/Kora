@@ -41,7 +41,8 @@ export default function CgvPage() {
         L&apos;accès au service nécessite la création d&apos;un compte. Vous vous
         engagez à fournir des informations exactes et à préserver la
         confidentialité de vos identifiants. Vous êtes responsable de toute
-        activité réalisée depuis votre compte.
+        activité réalisée depuis votre compte. L&apos;accès au service est
+        réservé aux personnes majeures ou autorisées par un tuteur légal.
       </p>
 
       <h2>4. Offres et tarifs</h2>

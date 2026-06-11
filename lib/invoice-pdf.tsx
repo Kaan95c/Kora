@@ -53,6 +53,7 @@ export async function buildInvoiceBuffer(
           siret: true,
           vatNumber: true,
           logoUrl: true,
+          plan: true,
           email: true,
           phone: true,
         },
@@ -94,6 +95,11 @@ export async function buildInvoiceBuffer(
   const due =
     doc.dueDate ?? new Date(doc.createdAt.getTime() + 30 * 86_400_000);
 
+  // Logo personnalisé sur les PDF = fonctionnalité payante (STARTER+).
+  // En plan Free, aucun logo n'est embarqué (cf. offre « Custom PDF with your logo »).
+  const logoUrl =
+    doc.company.plan === "FREE" ? null : safeLogo(doc.company.logoUrl);
+
   const data: InvoiceData = {
     type: doc.type,
     number: doc.number ?? doc.title,
@@ -104,7 +110,7 @@ export async function buildInvoiceBuffer(
       address: doc.company.address,
       siret: doc.company.siret,
       vatNumber: doc.company.vatNumber,
-      logoUrl: safeLogo(doc.company.logoUrl),
+      logoUrl,
       email: doc.company.email,
       phone: doc.company.phone,
     },

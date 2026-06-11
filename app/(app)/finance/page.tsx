@@ -323,20 +323,6 @@ export default function FinancePage() {
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
             Recent Transactions
           </h2>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="font-inter rounded-lg border border-[#c4c8be] bg-white px-4 py-2 text-[13px] font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
-            >
-              Filters
-            </button>
-            <button
-              type="button"
-              className="font-inter rounded-lg border border-[#c4c8be] bg-white px-4 py-2 text-[13px] font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
-            >
-              Sort by Date
-            </button>
-          </div>
         </div>
 
         {/* Header colonnes */}

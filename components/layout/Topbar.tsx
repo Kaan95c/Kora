@@ -4,13 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  Menu,
-  Bell,
-  HelpCircle,
-  Settings as SettingsIcon,
-  LogOut,
-} from "lucide-react";
+import { Menu, Settings as SettingsIcon, LogOut } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -84,21 +78,6 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
       {/* Actions à droite */}
       <div className="ml-auto flex items-center gap-3 md:ml-0">
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="hidden h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-low md:flex"
-        >
-          <Bell className="h-5 w-5" strokeWidth={1.75} />
-        </button>
-        <button
-          type="button"
-          aria-label="Aide"
-          className="hidden h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-low md:flex"
-        >
-          <HelpCircle className="h-5 w-5" strokeWidth={1.75} />
-        </button>
-
         <button
           type="button"
           onClick={() => router.push("/projects?new=1")}

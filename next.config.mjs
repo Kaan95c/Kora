@@ -42,7 +42,6 @@ const config = process.env.NEXT_PUBLIC_SENTRY_DSN
       authToken: process.env.SENTRY_AUTH_TOKEN,
       silent: true,
       widenClientFileUpload: true,
-      disableLogger: true,
     })
   : nextConfig;
 

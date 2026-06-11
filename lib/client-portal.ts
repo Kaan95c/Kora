@@ -13,14 +13,26 @@ import { hasClientPortal } from "@/lib/plan-limits";
  *
  * Secret : `CLIENT_PORTAL_SECRET` si défini, sinon repli sur la
  * `SUPABASE_SERVICE_ROLE_KEY` (déjà présente, jamais exposée au client).
+ * Plus de valeur littérale par défaut : si aucun secret n'est configuré, on
+ * échoue (fail-closed) plutôt que d'utiliser un secret devinable.
+ * Résolu paresseusement (pas au chargement du module) pour ne pas casser le build.
  */
-const SECRET =
-  process.env.CLIENT_PORTAL_SECRET ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  "kora-dev-portal-secret";
+function getSecret(): string {
+  const secret =
+    process.env.CLIENT_PORTAL_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) {
+    throw new Error(
+      "CLIENT_PORTAL_SECRET (ou SUPABASE_SERVICE_ROLE_KEY) doit être défini pour signer les liens du portail client."
+    );
+  }
+  return secret;
+}
 
 function sign(contactId: string): string {
-  return crypto.createHmac("sha256", SECRET).update(contactId).digest("base64url");
+  return crypto
+    .createHmac("sha256", getSecret())
+    .update(contactId)
+    .digest("base64url");
 }
 
 /** Construit le token signé `<payload>.<signature>` pour un contact. */
