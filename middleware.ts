@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { updateSession } from "@/lib/supabase/middleware";
+import { corsHeaders } from "@/lib/cors";
 
 // Routes (préfixes) qui exigent une session.
 const PROTECTED_PREFIXES = [
@@ -18,8 +19,17 @@ const PROTECTED_PREFIXES = [
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
+
+  // CORS preflight (OPTIONS) sur /api/* — court-circuite avant la session.
+  if (pathname.startsWith("/api/") && request.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 204,
+      headers: corsHeaders(request.headers.get("origin")),
+    });
+  }
+
+  const { supabaseResponse, user } = await updateSession(request);
 
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
