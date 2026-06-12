@@ -5,22 +5,20 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
 
-const BULLETS = [
-  "Invoices & contracts in minutes",
-  "Automated client follow-ups",
-  "Beautiful client portal",
-];
+const BULLET_KEYS = ["bullet1", "bullet2", "bullet3"] as const;
 
 const PASSWORD_RULES = [
-  { label: "8 characters minimum", test: (p: string) => p.length >= 8 },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
+  { key: "pwRule8", test: (p: string) => p.length >= 8 },
+  { key: "pwRuleUpper", test: (p: string) => /[A-Z]/.test(p) },
+  { key: "pwRuleNumber", test: (p: string) => /[0-9]/.test(p) },
 ];
 
 function AuthHero() {
+  const t = useTranslations("auth");
   return (
     <div className="relative hidden overflow-hidden bg-[#52634c] p-12 lg:flex lg:flex-col lg:justify-between">
       {/* Cercles décoratifs */}
@@ -40,23 +38,20 @@ function AuthHero() {
       />
 
       <div className="relative">
-        <h2 className="font-manrope text-[36px] font-semibold leading-[1.2] text-white">
-          Focus on creating,
-          <br />
-          let us handle the rest.
+        <h2 className="font-manrope whitespace-pre-line text-[36px] font-semibold leading-[1.2] text-white">
+          {t("heroTitle")}
         </h2>
         <p className="font-inter mt-4 max-w-md text-base text-white/80">
-          Join thousands of creative professionals who trust Kora to run their
-          studio.
+          {t("heroSubtitle")}
         </p>
 
         <ul className="mt-8 space-y-3">
-          {BULLETS.map((b) => (
-            <li key={b} className="flex items-center gap-3">
+          {BULLET_KEYS.map((k) => (
+            <li key={k} className="flex items-center gap-3">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#d5e8cb]">
                 <Check className="h-3 w-3 text-[#52634c]" strokeWidth={3} />
               </span>
-              <span className="font-inter text-sm text-white/90">{b}</span>
+              <span className="font-inter text-sm text-white/90">{t(k)}</span>
             </li>
           ))}
         </ul>
@@ -69,6 +64,7 @@ function AuthHero() {
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const t = useTranslations("auth");
   const [checking, setChecking] = useState(true);
   const [hasSession, setHasSession] = useState(false);
   const [password, setPassword] = useState("");
@@ -94,7 +90,7 @@ export default function ResetPasswordPage() {
     setError(null);
 
     if (!passwordValid) {
-      setError("Your password does not meet the requirements.");
+      setError(t("passwordRequirements"));
       return;
     }
 
@@ -131,17 +127,16 @@ export default function ResetPasswordPage() {
           ) : !hasSession ? (
             <div className="text-center">
               <h1 className="font-manrope text-[32px] font-semibold text-[#1b1c1a]">
-                Link expired
+                {t("linkExpired")}
               </h1>
               <p className="font-inter mb-8 mt-2 text-base text-[#444841]">
-                This password reset link is invalid or has expired. Request a new
-                one to continue.
+                {t("linkExpiredText")}
               </p>
               <Link
                 href="/forgot-password"
                 className="font-manrope inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#52634c] text-[15px] font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:bg-[#3b4b36]"
               >
-                Request a new link
+                {t("requestNewLink")}
               </Link>
             </div>
           ) : (
@@ -153,10 +148,10 @@ export default function ResetPasswordPage() {
               )}
 
               <h1 className="font-manrope text-[32px] font-semibold text-[#1b1c1a]">
-                Set a new password
+                {t("resetTitle")}
               </h1>
               <p className="font-inter mb-8 mt-2 text-base text-[#444841]">
-                Choose a strong password for your Kora workspace.
+                {t("resetSubtitle")}
               </p>
 
               <form onSubmit={handleSubmit} noValidate className="flex flex-col">
@@ -164,7 +159,7 @@ export default function ResetPasswordPage() {
                   htmlFor="password"
                   className="font-inter mb-1.5 text-sm font-medium text-[#1b1c1a]"
                 >
-                  New password
+                  {t("newPassword")}
                 </label>
                 <div className="relative">
                   <input
@@ -195,7 +190,7 @@ export default function ResetPasswordPage() {
                     const ok = rule.test(password);
                     return (
                       <li
-                        key={rule.label}
+                        key={rule.key}
                         className={`font-inter flex items-center gap-1.5 text-xs ${
                           ok ? "text-[#3b4b36]" : "text-[#747870]"
                         }`}
@@ -206,7 +201,7 @@ export default function ResetPasswordPage() {
                           }`}
                           strokeWidth={3}
                         />
-                        {rule.label}
+                        {t(rule.key)}
                       </li>
                     );
                   })}
@@ -220,10 +215,10 @@ export default function ResetPasswordPage() {
                   {loading ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                      Updating...
+                      {t("updating")}
                     </>
                   ) : (
-                    "Update password"
+                    t("updatePassword")
                   )}
                 </button>
               </form>

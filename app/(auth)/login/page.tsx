@@ -5,14 +5,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
 
-const BULLETS = [
-  "Invoices & contracts in minutes",
-  "Automated client follow-ups",
-  "Beautiful client portal",
-];
+const BULLET_KEYS = ["bullet1", "bullet2", "bullet3"] as const;
 
 function GoogleIcon() {
   return (
@@ -38,6 +35,7 @@ function GoogleIcon() {
 }
 
 function AuthHero() {
+  const t = useTranslations("auth");
   return (
     <div className="relative hidden overflow-hidden bg-[#52634c] p-12 lg:flex lg:flex-col lg:justify-between">
       {/* Cercles décoratifs */}
@@ -57,23 +55,20 @@ function AuthHero() {
       />
 
       <div className="relative">
-        <h2 className="font-manrope text-[36px] font-semibold leading-[1.2] text-white">
-          Focus on creating,
-          <br />
-          let us handle the rest.
+        <h2 className="font-manrope whitespace-pre-line text-[36px] font-semibold leading-[1.2] text-white">
+          {t("heroTitle")}
         </h2>
         <p className="font-inter mt-4 max-w-md text-base text-white/80">
-          Join thousands of creative professionals who trust Kora to run their
-          studio.
+          {t("heroSubtitle")}
         </p>
 
         <ul className="mt-8 space-y-3">
-          {BULLETS.map((b) => (
-            <li key={b} className="flex items-center gap-3">
+          {BULLET_KEYS.map((k) => (
+            <li key={k} className="flex items-center gap-3">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#d5e8cb]">
                 <Check className="h-3 w-3 text-[#52634c]" strokeWidth={3} />
               </span>
-              <span className="font-inter text-sm text-white/90">{b}</span>
+              <span className="font-inter text-sm text-white/90">{t(k)}</span>
             </li>
           ))}
         </ul>
@@ -86,6 +81,7 @@ function AuthHero() {
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -145,10 +141,10 @@ export default function LoginPage() {
           )}
 
           <h1 className="font-manrope text-[32px] font-semibold text-[#1b1c1a]">
-            Welcome back
+            {t("welcomeBack")}
           </h1>
           <p className="font-inter mb-8 mt-2 text-base text-[#444841]">
-            Sign in to your Kora workspace
+            {t("signInSubtitle")}
           </p>
 
           <form onSubmit={handleLogin} noValidate className="flex flex-col">
@@ -156,7 +152,7 @@ export default function LoginPage() {
               htmlFor="email"
               className="font-inter mb-1.5 text-sm font-medium text-[#1b1c1a]"
             >
-              Email address
+              {t("emailAddress")}
             </label>
             <input
               id="email"
@@ -176,13 +172,13 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="font-inter text-sm font-medium text-[#1b1c1a]"
               >
-                Password
+                {t("password")}
               </label>
               <Link
                 href="/forgot-password"
                 className="font-inter text-[13px] text-[#52634c] hover:underline"
               >
-                Forgot password?
+                {t("forgotPassword")}
               </Link>
             </div>
             <div className="relative">
@@ -220,10 +216,10 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                  Signing in...
+                  {t("signingIn")}
                 </>
               ) : (
-                "Sign in"
+                t("signIn")
               )}
             </button>
           </form>
@@ -232,7 +228,7 @@ export default function LoginPage() {
           <div className="my-6 flex items-center gap-3">
             <span className="h-px flex-1 bg-[#c4c8be]" />
             <span className="font-inter text-xs text-[#444841]">
-              or continue with
+              {t("orContinueWith")}
             </span>
             <span className="h-px flex-1 bg-[#c4c8be]" />
           </div>
@@ -243,16 +239,16 @@ export default function LoginPage() {
             className="font-inter flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#c4c8be] bg-white text-sm font-medium text-[#1b1c1a] transition-colors hover:bg-[#f5f3f0]"
           >
             <GoogleIcon />
-            Continue with Google
+            {t("continueWithGoogle")}
           </button>
 
           <p className="font-inter mt-8 text-center text-sm text-[#444841]">
-            Don&apos;t have an account?{" "}
+            {t("noAccount")}{" "}
             <Link
               href="/register"
               className="font-medium text-[#52634c] hover:underline"
             >
-              Start free trial
+              {t("startTrial")}
             </Link>
           </p>
         </div>

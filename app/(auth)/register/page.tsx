@@ -5,19 +5,16 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
 
-const BULLETS = [
-  "Invoices & contracts in minutes",
-  "Automated client follow-ups",
-  "Beautiful client portal",
-];
+const BULLET_KEYS = ["bullet1", "bullet2", "bullet3"] as const;
 
 const PASSWORD_RULES = [
-  { label: "8 characters minimum", test: (p: string) => p.length >= 8 },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
+  { key: "pwRule8", test: (p: string) => p.length >= 8 },
+  { key: "pwRuleUpper", test: (p: string) => /[A-Z]/.test(p) },
+  { key: "pwRuleNumber", test: (p: string) => /[0-9]/.test(p) },
 ];
 
 function GoogleIcon() {
@@ -44,6 +41,7 @@ function GoogleIcon() {
 }
 
 function AuthHero() {
+  const t = useTranslations("auth");
   return (
     <div className="relative hidden overflow-hidden bg-[#52634c] p-12 lg:flex lg:flex-col lg:justify-between">
       <div className="pointer-events-none absolute inset-0 opacity-5">
@@ -62,23 +60,20 @@ function AuthHero() {
       />
 
       <div className="relative">
-        <h2 className="font-manrope text-[36px] font-semibold leading-[1.2] text-white">
-          Focus on creating,
-          <br />
-          let us handle the rest.
+        <h2 className="font-manrope whitespace-pre-line text-[36px] font-semibold leading-[1.2] text-white">
+          {t("heroTitle")}
         </h2>
         <p className="font-inter mt-4 max-w-md text-base text-white/80">
-          Join thousands of creative professionals who trust Kora to run their
-          studio.
+          {t("heroSubtitle")}
         </p>
 
         <ul className="mt-8 space-y-3">
-          {BULLETS.map((b) => (
-            <li key={b} className="flex items-center gap-3">
+          {BULLET_KEYS.map((k) => (
+            <li key={k} className="flex items-center gap-3">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#d5e8cb]">
                 <Check className="h-3 w-3 text-[#52634c]" strokeWidth={3} />
               </span>
-              <span className="font-inter text-sm text-white/90">{b}</span>
+              <span className="font-inter text-sm text-white/90">{t(k)}</span>
             </li>
           ))}
         </ul>
@@ -91,6 +86,7 @@ function AuthHero() {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations("auth");
   const [fullName, setFullName] = useState("");
   const [studioName, setStudioName] = useState("");
   const [email, setEmail] = useState("");
@@ -106,11 +102,11 @@ export default function RegisterPage() {
     setError(null);
 
     if (!fullName || !studioName || !email) {
-      setError("Please fill in all fields.");
+      setError(t("fillAllFields"));
       return;
     }
     if (!passwordValid) {
-      setError("Your password does not meet the requirements.");
+      setError(t("passwordRequirements"));
       return;
     }
 
@@ -124,7 +120,7 @@ export default function RegisterPage() {
     });
 
     if (signUpError || !data.user) {
-      setError(signUpError?.message ?? "Sign up failed.");
+      setError(signUpError?.message ?? t("signUpFailed"));
       setLoading(false);
       return;
     }
@@ -142,7 +138,7 @@ export default function RegisterPage() {
     });
 
     if (!setupRes.ok) {
-      setError("Could not finish setting up your studio. Please try again.");
+      setError(t("setupFailed"));
       setLoading(false);
       return;
     }
@@ -186,10 +182,10 @@ export default function RegisterPage() {
           )}
 
           <h1 className="font-manrope text-[32px] font-semibold text-[#1b1c1a]">
-            Start your free trial
+            {t("trialTitle")}
           </h1>
           <p className="font-inter mb-6 mt-2 text-base text-[#444841]">
-            14 days free, no credit card required.
+            {t("trialSubtitle")}
           </p>
 
           <button
@@ -198,14 +194,14 @@ export default function RegisterPage() {
             className="font-inter flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#c4c8be] bg-white text-sm font-medium text-[#1b1c1a] transition-colors hover:bg-[#f5f3f0]"
           >
             <GoogleIcon />
-            Continue with Google
+            {t("continueWithGoogle")}
           </button>
 
           {/* Séparateur */}
           <div className="my-6 flex items-center gap-3">
             <span className="h-px flex-1 bg-[#c4c8be]" />
             <span className="font-inter text-xs text-[#444841]">
-              or continue with email
+              {t("orContinueEmail")}
             </span>
             <span className="h-px flex-1 bg-[#c4c8be]" />
           </div>
@@ -216,7 +212,7 @@ export default function RegisterPage() {
                 htmlFor="fullName"
                 className="font-inter mb-1.5 block text-sm font-medium text-[#1b1c1a]"
               >
-                Full name
+                {t("fullName")}
               </label>
               <input
                 id="fullName"
@@ -233,7 +229,7 @@ export default function RegisterPage() {
                 htmlFor="studioName"
                 className="font-inter mb-1.5 block text-sm font-medium text-[#1b1c1a]"
               >
-                Studio name
+                {t("studioName")}
               </label>
               <input
                 id="studioName"
@@ -250,7 +246,7 @@ export default function RegisterPage() {
                 htmlFor="email"
                 className="font-inter mb-1.5 block text-sm font-medium text-[#1b1c1a]"
               >
-                Email address
+                {t("emailAddress")}
               </label>
               <input
                 id="email"
@@ -267,7 +263,7 @@ export default function RegisterPage() {
                 htmlFor="password"
                 className="font-inter mb-1.5 block text-sm font-medium text-[#1b1c1a]"
               >
-                Password
+                {t("password")}
               </label>
               <div className="relative">
                 <input
@@ -298,7 +294,7 @@ export default function RegisterPage() {
                   const ok = rule.test(password);
                   return (
                     <li
-                      key={rule.label}
+                      key={rule.key}
                       className={`font-inter flex items-center gap-1.5 text-xs ${
                         ok ? "text-[#3b4b36]" : "text-[#747870]"
                       }`}
@@ -309,7 +305,7 @@ export default function RegisterPage() {
                         }`}
                         strokeWidth={3}
                       />
-                      {rule.label}
+                      {t(rule.key)}
                     </li>
                   );
                 })}
@@ -324,39 +320,39 @@ export default function RegisterPage() {
               {loading ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                  Creating account...
+                  {t("creatingAccount")}
                 </>
               ) : (
-                "Create my account"
+                t("createAccount")
               )}
             </button>
           </form>
 
           <p className="font-inter mt-4 text-center text-xs text-[#444841]">
-            By creating an account, you agree to our{" "}
+            {t("termsPrefix")}{" "}
             <Link
               href="/legal/cgv"
               className="font-medium text-[#52634c] hover:underline"
             >
-              Terms of Service
+              {t("termsOfService")}
             </Link>{" "}
-            and{" "}
+            {t("and")}{" "}
             <Link
               href="/legal/privacy"
               className="font-medium text-[#52634c] hover:underline"
             >
-              Privacy Policy
+              {t("privacyPolicy")}
             </Link>
             .
           </p>
 
           <p className="font-inter mt-6 text-center text-sm text-[#444841]">
-            Already have an account?{" "}
+            {t("alreadyAccount")}{" "}
             <Link
               href="/login"
               className="font-medium text-[#52634c] hover:underline"
             >
-              Sign in
+              {t("signIn")}
             </Link>
           </p>
         </div>

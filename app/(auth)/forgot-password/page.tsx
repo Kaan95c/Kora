@@ -4,16 +4,14 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Check, MailCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
 
-const BULLETS = [
-  "Invoices & contracts in minutes",
-  "Automated client follow-ups",
-  "Beautiful client portal",
-];
+const BULLET_KEYS = ["bullet1", "bullet2", "bullet3"] as const;
 
 function AuthHero() {
+  const t = useTranslations("auth");
   return (
     <div className="relative hidden overflow-hidden bg-[#52634c] p-12 lg:flex lg:flex-col lg:justify-between">
       {/* Cercles décoratifs */}
@@ -33,23 +31,20 @@ function AuthHero() {
       />
 
       <div className="relative">
-        <h2 className="font-manrope text-[36px] font-semibold leading-[1.2] text-white">
-          Focus on creating,
-          <br />
-          let us handle the rest.
+        <h2 className="font-manrope whitespace-pre-line text-[36px] font-semibold leading-[1.2] text-white">
+          {t("heroTitle")}
         </h2>
         <p className="font-inter mt-4 max-w-md text-base text-white/80">
-          Join thousands of creative professionals who trust Kora to run their
-          studio.
+          {t("heroSubtitle")}
         </p>
 
         <ul className="mt-8 space-y-3">
-          {BULLETS.map((b) => (
-            <li key={b} className="flex items-center gap-3">
+          {BULLET_KEYS.map((k) => (
+            <li key={k} className="flex items-center gap-3">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#d5e8cb]">
                 <Check className="h-3 w-3 text-[#52634c]" strokeWidth={3} />
               </span>
-              <span className="font-inter text-sm text-white/90">{b}</span>
+              <span className="font-inter text-sm text-white/90">{t(k)}</span>
             </li>
           ))}
         </ul>
@@ -61,6 +56,7 @@ function AuthHero() {
 }
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,19 +107,17 @@ export default function ForgotPasswordPage() {
                 <MailCheck className="h-7 w-7 text-[#52634c]" />
               </span>
               <h1 className="font-manrope text-[32px] font-semibold text-[#1b1c1a]">
-                Check your email
+                {t("checkEmail")}
               </h1>
               <p className="font-inter mb-8 mt-2 text-base text-[#444841]">
-                If an account exists for{" "}
-                <span className="font-medium text-[#1b1c1a]">{email}</span>,
-                we&apos;ve sent a link to reset your password.
+                {t("checkEmailText", { email })}
               </p>
               <Link
                 href="/login"
                 className="font-inter inline-flex items-center gap-2 text-sm font-medium text-[#52634c] hover:underline"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to sign in
+                {t("backToSignIn")}
               </Link>
             </div>
           ) : (
@@ -135,10 +129,10 @@ export default function ForgotPasswordPage() {
               )}
 
               <h1 className="font-manrope text-[32px] font-semibold text-[#1b1c1a]">
-                Forgot your password?
+                {t("forgotTitle")}
               </h1>
               <p className="font-inter mb-8 mt-2 text-base text-[#444841]">
-                Enter your email and we&apos;ll send you a link to reset it.
+                {t("forgotSubtitle")}
               </p>
 
               <form onSubmit={handleSubmit} noValidate className="flex flex-col">
@@ -146,7 +140,7 @@ export default function ForgotPasswordPage() {
                   htmlFor="email"
                   className="font-inter mb-1.5 text-sm font-medium text-[#1b1c1a]"
                 >
-                  Email address
+                  {t("emailAddress")}
                 </label>
                 <input
                   id="email"
@@ -169,10 +163,10 @@ export default function ForgotPasswordPage() {
                   {loading ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                      Sending...
+                      {t("sending")}
                     </>
                   ) : (
-                    "Send reset link"
+                    t("sendResetLink")
                   )}
                 </button>
               </form>
@@ -183,7 +177,7 @@ export default function ForgotPasswordPage() {
                   className="inline-flex items-center gap-2 font-medium text-[#52634c] hover:underline"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to sign in
+                  {t("backToSignIn")}
                 </Link>
               </p>
             </>
