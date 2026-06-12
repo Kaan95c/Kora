@@ -1,4 +1,55 @@
 {
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading…",
+    "previous": "Previous",
+    "next": "Next",
+    "networkError": "Network error. Please try again."
+  },
+  "status": {
+    "all": "All",
+    "contact": {
+      "LEAD": "Lead",
+      "PROSPECT": "Prospect",
+      "CLIENT": "Client",
+      "ARCHIVED": "Archived"
+    }
+  },
+  "contacts": {
+    "title": "Contacts",
+    "subtitle": "Manage your {count, plural, =0 {0 clients} one {# client} other {# clients}} and creative collaborators.",
+    "newContact": "New Contact",
+    "searchPlaceholder": "Search by name or email…",
+    "colName": "Name",
+    "colEmail": "Email",
+    "colPhone": "Phone",
+    "colStatus": "Status",
+    "colTags": "Tags",
+    "colAdded": "Added",
+    "noContacts": "No contacts found",
+    "emptyFiltered": "Try adjusting your search or filters.",
+    "emptyDefault": "Add your first contact to get started.",
+    "showing": "Showing {from}-{to} of {total, plural, one {# contact} other {# contacts}}",
+    "archiveConfirm": "Archive this contact?",
+    "editContact": "Edit contact",
+    "archiveContact": "Archive contact",
+    "drawerTitle": "New Contact",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "company": "Company",
+    "statusLabel": "Status",
+    "tags": "Tags",
+    "tagsPlaceholder": "VIP, Newsletter…",
+    "requiredFields": "First name, last name and email are required.",
+    "createFailed": "Failed to create contact."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "contacts": "Contacts",

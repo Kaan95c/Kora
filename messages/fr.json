@@ -1,4 +1,55 @@
 {
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "close": "Fermer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "loading": "Chargement…",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "networkError": "Erreur réseau. Réessayez."
+  },
+  "status": {
+    "all": "Tous",
+    "contact": {
+      "LEAD": "Lead",
+      "PROSPECT": "Prospect",
+      "CLIENT": "Client",
+      "ARCHIVED": "Archivé"
+    }
+  },
+  "contacts": {
+    "title": "Contacts",
+    "subtitle": "Gérez vos {count, plural, =0 {0 client} one {# client} other {# clients}} et collaborateurs créatifs.",
+    "newContact": "Nouveau contact",
+    "searchPlaceholder": "Rechercher par nom ou e-mail…",
+    "colName": "Nom",
+    "colEmail": "E-mail",
+    "colPhone": "Téléphone",
+    "colStatus": "Statut",
+    "colTags": "Tags",
+    "colAdded": "Ajouté",
+    "noContacts": "Aucun contact trouvé",
+    "emptyFiltered": "Essayez d'ajuster votre recherche ou vos filtres.",
+    "emptyDefault": "Ajoutez votre premier contact pour commencer.",
+    "showing": "Affichage de {from}-{to} sur {total, plural, one {# contact} other {# contacts}}",
+    "archiveConfirm": "Archiver ce contact ?",
+    "editContact": "Modifier le contact",
+    "archiveContact": "Archiver le contact",
+    "drawerTitle": "Nouveau contact",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "company": "Société",
+    "statusLabel": "Statut",
+    "tags": "Tags",
+    "tagsPlaceholder": "VIP, Newsletter…",
+    "requiredFields": "Le prénom, le nom et l'e-mail sont requis.",
+    "createFailed": "Échec de la création du contact."
+  },
   "nav": {
     "dashboard": "Tableau de bord",
     "contacts": "Contacts",

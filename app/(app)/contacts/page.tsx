@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Search,
   Plus,
@@ -41,12 +42,12 @@ type Contact = {
   _count: { projects: number; documents: number };
 };
 
-const FILTERS: { label: string; value: ContactStatus | "ALL" }[] = [
-  { label: "All", value: "ALL" },
-  { label: "Lead", value: "LEAD" },
-  { label: "Prospect", value: "PROSPECT" },
-  { label: "Client", value: "CLIENT" },
-  { label: "Archived", value: "ARCHIVED" },
+const FILTERS: (ContactStatus | "ALL")[] = [
+  "ALL",
+  "LEAD",
+  "PROSPECT",
+  "CLIENT",
+  "ARCHIVED",
 ];
 
 const PER_PAGE = 10;
@@ -121,6 +122,9 @@ function NewContactDrawer({
     companyName: "",
     status: "LEAD" as ContactStatus,
   };
+  const tr = useTranslations("contacts");
+  const tc = useTranslations("common");
+  const ts = useTranslations("status");
   const [form, setForm] = useState(empty);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -160,7 +164,7 @@ function NewContactDrawer({
 
   async function handleSave() {
     if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
-      setError("First name, last name and email are required.");
+      setError(tr("requiredFields"));
       return;
     }
     setSaving(true);
@@ -178,13 +182,13 @@ function NewContactDrawer({
           setSaving(false);
           return;
         }
-        setError(data.error ?? "Failed to create contact.");
+        setError(data.error ?? tr("createFailed"));
         setSaving(false);
         return;
       }
       onCreated();
     } catch {
-      setError("Network error. Please try again.");
+      setError(tc("networkError"));
       setSaving(false);
     }
   }
@@ -215,12 +219,12 @@ function NewContactDrawer({
       >
         <div className="flex items-center justify-between border-b border-[#efeeea] px-6 py-5">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-            New Contact
+            {tr("drawerTitle")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={tc("close")}
             className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
             <X className="h-5 w-5" strokeWidth={1.75} />
@@ -230,7 +234,7 @@ function NewContactDrawer({
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>First name</label>
+              <label className={labelCls}>{tr("firstName")}</label>
               <input
                 className={inputCls}
                 value={form.firstName}
@@ -239,7 +243,7 @@ function NewContactDrawer({
               />
             </div>
             <div>
-              <label className={labelCls}>Last name</label>
+              <label className={labelCls}>{tr("lastName")}</label>
               <input
                 className={inputCls}
                 value={form.lastName}
@@ -250,7 +254,7 @@ function NewContactDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Email</label>
+            <label className={labelCls}>{tr("email")}</label>
             <input
               type="email"
               className={inputCls}
@@ -261,7 +265,7 @@ function NewContactDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Phone</label>
+            <label className={labelCls}>{tr("phone")}</label>
             <input
               className={inputCls}
               value={form.phone}
@@ -271,7 +275,7 @@ function NewContactDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Company</label>
+            <label className={labelCls}>{tr("company")}</label>
             <input
               className={inputCls}
               value={form.companyName}
@@ -281,7 +285,7 @@ function NewContactDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Status</label>
+            <label className={labelCls}>{tr("statusLabel")}</label>
             <select
               className={inputCls}
               value={form.status}
@@ -289,15 +293,15 @@ function NewContactDrawer({
                 update("status", e.target.value as ContactStatus)
               }
             >
-              <option value="LEAD">Lead</option>
-              <option value="PROSPECT">Prospect</option>
-              <option value="CLIENT">Client</option>
-              <option value="ARCHIVED">Archived</option>
+              <option value="LEAD">{ts("contact.LEAD")}</option>
+              <option value="PROSPECT">{ts("contact.PROSPECT")}</option>
+              <option value="CLIENT">{ts("contact.CLIENT")}</option>
+              <option value="ARCHIVED">{ts("contact.ARCHIVED")}</option>
             </select>
           </div>
 
           <div>
-            <label className={labelCls}>Tags</label>
+            <label className={labelCls}>{tr("tags")}</label>
             <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[#c4c8be] bg-white px-2.5 py-2 focus-within:border-[#52634c]">
               {tags.map((t) => (
                 <span
@@ -323,7 +327,7 @@ function NewContactDrawer({
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKey}
                 onBlur={addTag}
-                placeholder={tags.length === 0 ? "VIP, Newsletter…" : ""}
+                placeholder={tags.length === 0 ? tr("tagsPlaceholder") : ""}
               />
             </div>
           </div>
@@ -341,7 +345,7 @@ function NewContactDrawer({
             onClick={onClose}
             className="font-inter rounded-lg px-4 py-2.5 text-sm font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
-            Cancel
+            {tc("cancel")}
           </button>
           <button
             type="button"
@@ -349,7 +353,7 @@ function NewContactDrawer({
             disabled={saving}
             className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? tc("saving") : tc("save")}
           </button>
         </div>
       </aside>
@@ -368,6 +372,9 @@ export default function ContactsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const { limits } = useAuth();
+  const t = useTranslations("contacts");
+  const tc = useTranslations("common");
+  const ts = useTranslations("status");
 
   // Quick Action (Sidebar) → /contacts?new=1 ouvre le drawer.
   useNewDrawerParam(() => setDrawerOpen(true));
@@ -419,7 +426,7 @@ export default function ContactsPage() {
   }
 
   async function handleArchive(id: string) {
-    if (!window.confirm("Archive this contact?")) return;
+    if (!window.confirm(t("archiveConfirm"))) return;
     // Optimiste : passe en ARCHIVED localement.
     setContacts((prev) =>
       prev
@@ -461,11 +468,10 @@ export default function ContactsPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-manrope text-[32px] font-semibold tracking-[-0.01em] text-on-surface">
-            Contacts
+            {t("title")}
           </h1>
           <p className="font-manrope mt-1 text-base font-normal text-on-surface-variant">
-            Manage your {total} client{total === 1 ? "" : "s"} and creative
-            collaborators.
+            {t("subtitle", { count: total })}
           </p>
         </div>
         <button
@@ -474,7 +480,7 @@ export default function ContactsPage() {
           className="font-inter flex items-center gap-2 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
-          New Contact
+          {t("newContact")}
         </button>
       </div>
 
@@ -483,16 +489,16 @@ export default function ContactsPage() {
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
             <button
-              key={f.value}
+              key={f}
               type="button"
-              onClick={() => changeFilter(f.value)}
+              onClick={() => changeFilter(f)}
               className={`font-inter rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                filter === f.value
+                filter === f
                   ? "bg-[#52634c] text-white"
                   : "border border-[#c4c8be] bg-[#efeeea] text-[#444841] hover:bg-[#e6e4df]"
               }`}
             >
-              {f.label}
+              {f === "ALL" ? ts("all") : ts(`contact.${f}`)}
             </button>
           ))}
         </div>
@@ -504,7 +510,7 @@ export default function ContactsPage() {
           <input
             value={search}
             onChange={(e) => changeSearch(e.target.value)}
-            placeholder="Search by name or email…"
+            placeholder={t("searchPlaceholder")}
             className="font-inter w-full rounded-lg border border-[#c4c8be] bg-white py-2.5 pl-9 pr-3 text-sm text-[#1b1c1a] outline-none transition-colors placeholder:text-outline focus:border-[#52634c]"
           />
         </div>
@@ -517,8 +523,15 @@ export default function ContactsPage() {
           className="grid min-w-[860px] items-center gap-4 border-b border-[#c4c8be]/50 px-6 py-3"
           style={{ gridTemplateColumns: GRID }}
         >
-          {["Name", "Email", "Phone", "Status", "Tags", "Added", ""].map(
-            (h, i) => (
+          {[
+            t("colName"),
+            t("colEmail"),
+            t("colPhone"),
+            t("colStatus"),
+            t("colTags"),
+            t("colAdded"),
+            "",
+          ].map((h, i) => (
               <span
                 key={i}
                 className="font-inter text-[11px] font-semibold uppercase tracking-wide text-[#444841]"
@@ -562,7 +575,7 @@ export default function ContactsPage() {
             {/* Statut */}
             <div>
               <StatusBadge
-                status={STATUS_CONFIG[c.status].label}
+                status={ts(`contact.${c.status}`)}
                 variant={STATUS_CONFIG[c.status].variant}
               />
             </div>
@@ -580,7 +593,7 @@ export default function ContactsPage() {
                   e.stopPropagation();
                   router.push(`/contacts/${c.id}`);
                 }}
-                aria-label="Edit contact"
+                aria-label={t("editContact")}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea]"
               >
                 <Pencil className="h-4 w-4" strokeWidth={1.75} />
@@ -591,7 +604,7 @@ export default function ContactsPage() {
                   e.stopPropagation();
                   handleArchive(c.id);
                 }}
-                aria-label="Archive contact"
+                aria-label={t("archiveContact")}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-error-container hover:text-[#93000a]"
               >
                 <Trash2 className="h-4 w-4" strokeWidth={1.75} />
@@ -607,12 +620,12 @@ export default function ContactsPage() {
               <Users className="h-6 w-6 text-outline" strokeWidth={1.5} />
             </div>
             <p className="font-manrope mt-4 text-base font-semibold text-[#1b1c1a]">
-              No contacts found
+              {t("noContacts")}
             </p>
             <p className="font-inter mt-1 text-sm text-[#444841]">
               {search || filter !== "ALL"
-                ? "Try adjusting your search or filters."
-                : "Add your first contact to get started."}
+                ? t("emptyFiltered")
+                : t("emptyDefault")}
             </p>
           </div>
         )}
@@ -622,15 +635,14 @@ export default function ContactsPage() {
       {visible.length > 0 && (
         <div className="mt-4 flex items-center justify-between">
           <span className="font-inter text-[13px] text-[#444841]">
-            Showing {from}-{to} of {visible.length} contact
-            {visible.length === 1 ? "" : "s"}
+            {t("showing", { from, to, total: visible.length })}
           </span>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage === 1}
-              aria-label="Previous page"
+              aria-label={tc("previous")}
               className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -653,7 +665,7 @@ export default function ContactsPage() {
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage === totalPages}
-              aria-label="Next page"
+              aria-label={tc("next")}
               className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] disabled:opacity-40"
             >
               <ChevronRight className="h-4 w-4" />
