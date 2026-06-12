@@ -18,6 +18,13 @@
       "PROSPECT": "Prospect",
       "CLIENT": "Client",
       "ARCHIVED": "Archivé"
+    },
+    "project": {
+      "INQUIRY": "Demande",
+      "FOLLOW_UP": "Relance",
+      "BOOKING": "Réservation",
+      "ACTIVE": "Actif",
+      "ARCHIVED": "Archivé"
     }
   },
   "contacts": {
@@ -49,6 +56,30 @@
     "tagsPlaceholder": "VIP, Newsletter…",
     "requiredFields": "Le prénom, le nom et l'e-mail sont requis.",
     "createFailed": "Échec de la création du contact."
+  },
+  "projects": {
+    "title": "Projets actifs",
+    "subtitle": "Gestion de {count, plural, =0 {0 partenariat créatif en cours} one {# partenariat créatif en cours} other {# partenariats créatifs en cours}}.",
+    "newProject": "Nouveau projet",
+    "list": "Liste",
+    "kanban": "Kanban",
+    "allProjects": "Tous les projets",
+    "client": "Client : {name}",
+    "noClient": "Aucun client",
+    "tasksDocs": "{tasks} tâches · {docs} docs",
+    "dropHere": "Déposer ici",
+    "noProjects": "Aucun projet ici",
+    "emptyDefault": "Créez votre premier projet pour commencer.",
+    "emptyFiltered": "Aucun projet au statut « {status} ».",
+    "drawerTitle": "Nouveau projet",
+    "name": "Nom",
+    "namePlaceholder": "Refonte de l'identité de marque",
+    "clientLabel": "Client",
+    "noClientOption": "— Aucun client —",
+    "stage": "Étape",
+    "startDate": "Date de début",
+    "nameRequired": "Le nom est requis.",
+    "createFailed": "Échec de la création du projet."
   },
   "nav": {
     "dashboard": "Tableau de bord",

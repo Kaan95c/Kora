@@ -18,6 +18,13 @@
       "PROSPECT": "Prospect",
       "CLIENT": "Client",
       "ARCHIVED": "Archived"
+    },
+    "project": {
+      "INQUIRY": "Inquiry",
+      "FOLLOW_UP": "Follow-up",
+      "BOOKING": "Booking",
+      "ACTIVE": "Active",
+      "ARCHIVED": "Archived"
     }
   },
   "contacts": {
@@ -49,6 +56,30 @@
     "tagsPlaceholder": "VIP, Newsletter…",
     "requiredFields": "First name, last name and email are required.",
     "createFailed": "Failed to create contact."
+  },
+  "projects": {
+    "title": "Active Projects",
+    "subtitle": "Managing {count, plural, =0 {0 ongoing creative partnerships} one {# ongoing creative partnership} other {# ongoing creative partnerships}}.",
+    "newProject": "New Project",
+    "list": "List",
+    "kanban": "Kanban",
+    "allProjects": "All Projects",
+    "client": "Client: {name}",
+    "noClient": "No client",
+    "tasksDocs": "{tasks} tasks · {docs} docs",
+    "dropHere": "Drop here",
+    "noProjects": "No projects here",
+    "emptyDefault": "Create your first project to get started.",
+    "emptyFiltered": "No projects with status “{status}”.",
+    "drawerTitle": "New Project",
+    "name": "Name",
+    "namePlaceholder": "Brand identity refresh",
+    "clientLabel": "Client",
+    "noClientOption": "— No client —",
+    "stage": "Stage",
+    "startDate": "Start date",
+    "nameRequired": "Name is required.",
+    "createFailed": "Failed to create project."
   },
   "nav": {
     "dashboard": "Dashboard",

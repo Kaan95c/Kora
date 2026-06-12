@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   DndContext,
   PointerSensor,
@@ -54,14 +55,6 @@ const STATUS_ORDER: ProjectStatus[] = [
   "ARCHIVED",
 ];
 
-const STATUS_LABEL: Record<ProjectStatus, string> = {
-  INQUIRY: "Inquiry",
-  FOLLOW_UP: "Follow-up",
-  BOOKING: "Booking",
-  ACTIVE: "Active",
-  ARCHIVED: "Archived",
-};
-
 const STATUS_VARIANT: Record<ProjectStatus, StatusVariant> = {
   INQUIRY: "booking",
   FOLLOW_UP: "pending",
@@ -80,13 +73,13 @@ const STATUS_TILE: Record<ProjectStatus, string> = {
 
 const PROJECT_ICONS: LucideIcon[] = [Palette, Camera, PenTool, Sparkles];
 
-const FILTERS: { label: string; value: ProjectStatus | "ALL" }[] = [
-  { label: "All Projects", value: "ALL" },
-  { label: "Inquiry", value: "INQUIRY" },
-  { label: "Follow-up", value: "FOLLOW_UP" },
-  { label: "Booking", value: "BOOKING" },
-  { label: "Active", value: "ACTIVE" },
-  { label: "Archived", value: "ARCHIVED" },
+const FILTERS: (ProjectStatus | "ALL")[] = [
+  "ALL",
+  "INQUIRY",
+  "FOLLOW_UP",
+  "BOOKING",
+  "ACTIVE",
+  "ARCHIVED",
 ];
 
 // ───────────────────────── Helpers ─────────────────────────
@@ -100,8 +93,8 @@ function initials(p: Project) {
   return "—";
 }
 
-function clientName(p: Project) {
-  return p.contact ? `${p.contact.firstName} ${p.contact.lastName}` : "No client";
+function clientName(p: Project): string | null {
+  return p.contact ? `${p.contact.firstName} ${p.contact.lastName}` : null;
 }
 
 function formatDate(d: string | null) {
@@ -121,6 +114,8 @@ function progress(p: Project) {
 // ───────────────────────── Card (vue List) ─────────────────────────
 
 function ProjectCard({ project, index }: { project: Project; index: number }) {
+  const t = useTranslations("projects");
+  const ts = useTranslations("status");
   const Icon = PROJECT_ICONS[index % PROJECT_ICONS.length];
   const pct = progress(project);
 
@@ -134,7 +129,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
           <Icon className="h-5 w-5 text-[#52634c]" strokeWidth={1.75} />
         </div>
         <StatusBadge
-          status={STATUS_LABEL[project.status]}
+          status={ts(`project.${project.status}`)}
           variant={STATUS_VARIANT[project.status]}
         />
       </div>
@@ -143,7 +138,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
         {project.name}
       </h3>
       <p className="font-inter mt-1 text-sm text-[#444841]">
-        Client: {clientName(project)}
+        {t("client", { name: clientName(project) ?? t("noClient") })}
       </p>
 
       <div className="font-inter mt-3 flex items-center gap-2 text-sm text-[#444841]">
@@ -171,7 +166,10 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
           {initials(project)}
         </span>
         <span className="font-inter text-xs text-[#444841]">
-          {project._count.tasks} tasks · {project._count.documents} docs
+          {t("tasksDocs", {
+            tasks: project._count.tasks,
+            docs: project._count.documents,
+          })}
         </span>
       </div>
     </div>
@@ -181,6 +179,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
 // ───────────────────────── Kanban ─────────────────────────
 
 function KanbanCard({ project }: { project: Project }) {
+  const t = useTranslations("projects");
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: project.id });
   const pct = progress(project);
@@ -206,7 +205,7 @@ function KanbanCard({ project }: { project: Project }) {
         {project.name}
       </p>
       <p className="font-inter mt-0.5 text-xs text-[#444841]">
-        {clientName(project)}
+        {clientName(project) ?? t("noClient")}
       </p>
       <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[#efeeea]">
         <div
@@ -233,13 +232,15 @@ function KanbanColumn({
   status: ProjectStatus;
   projects: Project[];
 }) {
+  const t = useTranslations("projects");
+  const ts = useTranslations("status");
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
     <div className="flex w-72 shrink-0 flex-col">
       <div className="mb-3 flex items-center justify-between px-1">
         <StatusBadge
-          status={STATUS_LABEL[status]}
+          status={ts(`project.${status}`)}
           variant={STATUS_VARIANT[status]}
         />
         <span className="font-inter text-xs font-semibold text-[#444841]">
@@ -259,7 +260,7 @@ function KanbanColumn({
         ))}
         {projects.length === 0 && (
           <p className="font-inter px-1 py-6 text-center text-xs text-outline">
-            Drop here
+            {t("dropHere")}
           </p>
         )}
       </div>
@@ -286,6 +287,9 @@ function NewProjectDrawer({
     status: "ACTIVE" as ProjectStatus,
     startDate: "",
   };
+  const t = useTranslations("projects");
+  const tc = useTranslations("common");
+  const ts = useTranslations("status");
   const [form, setForm] = useState(empty);
   const [contacts, setContacts] = useState<{ id: string; label: string }[]>([]);
   const [saving, setSaving] = useState(false);
@@ -319,7 +323,7 @@ function NewProjectDrawer({
 
   async function handleSave() {
     if (!form.name.trim()) {
-      setError("Name is required.");
+      setError(t("nameRequired"));
       return;
     }
     setSaving(true);
@@ -342,13 +346,13 @@ function NewProjectDrawer({
           setSaving(false);
           return;
         }
-        setError(data.error ?? "Failed to create project.");
+        setError(data.error ?? t("createFailed"));
         setSaving(false);
         return;
       }
       onCreated();
     } catch {
-      setError("Network error. Please try again.");
+      setError(tc("networkError"));
       setSaving(false);
     }
   }
@@ -377,12 +381,12 @@ function NewProjectDrawer({
       >
         <div className="flex items-center justify-between border-b border-[#efeeea] px-6 py-5">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-            New Project
+            {t("drawerTitle")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={tc("close")}
             className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
             <X className="h-5 w-5" strokeWidth={1.75} />
@@ -391,23 +395,23 @@ function NewProjectDrawer({
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
           <div>
-            <label className={labelCls}>Name</label>
+            <label className={labelCls}>{t("name")}</label>
             <input
               className={inputCls}
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
-              placeholder="Brand identity refresh"
+              placeholder={t("namePlaceholder")}
             />
           </div>
 
           <div>
-            <label className={labelCls}>Client</label>
+            <label className={labelCls}>{t("clientLabel")}</label>
             <select
               className={inputCls}
               value={form.contactId}
               onChange={(e) => update("contactId", e.target.value)}
             >
-              <option value="">— No client —</option>
+              <option value="">{t("noClientOption")}</option>
               {contacts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -417,7 +421,7 @@ function NewProjectDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Stage</label>
+            <label className={labelCls}>{t("stage")}</label>
             <select
               className={inputCls}
               value={form.status}
@@ -428,7 +432,7 @@ function NewProjectDrawer({
               {(["INQUIRY", "FOLLOW_UP", "BOOKING", "ACTIVE"] as ProjectStatus[]).map(
                 (s) => (
                   <option key={s} value={s}>
-                    {STATUS_LABEL[s]}
+                    {ts(`project.${s}`)}
                   </option>
                 )
               )}
@@ -436,7 +440,7 @@ function NewProjectDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Start date</label>
+            <label className={labelCls}>{t("startDate")}</label>
             <input
               type="date"
               className={inputCls}
@@ -458,7 +462,7 @@ function NewProjectDrawer({
             onClick={onClose}
             className="font-inter rounded-lg px-4 py-2.5 text-sm font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
-            Cancel
+            {tc("cancel")}
           </button>
           <button
             type="button"
@@ -466,7 +470,7 @@ function NewProjectDrawer({
             disabled={saving}
             className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? tc("saving") : tc("save")}
           </button>
         </div>
       </aside>
@@ -483,6 +487,8 @@ export default function ProjectsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const { limits } = useAuth();
+  const t = useTranslations("projects");
+  const ts = useTranslations("status");
 
   // Quick Action (Sidebar) → /projects?new=1 ouvre le drawer.
   useNewDrawerParam(() => setDrawerOpen(true));
@@ -588,11 +594,10 @@ export default function ProjectsPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-manrope text-[32px] font-semibold tracking-[-0.01em] text-on-surface">
-            Active Projects
+            {t("title")}
           </h1>
           <p className="font-manrope mt-1 text-base font-normal text-on-surface-variant">
-            Managing {activeCount} ongoing creative partnership
-            {activeCount === 1 ? "" : "s"}.
+            {t("subtitle", { count: activeCount })}
           </p>
         </div>
 
@@ -609,7 +614,7 @@ export default function ProjectsPage() {
               }`}
             >
               <List className="h-4 w-4" strokeWidth={1.75} />
-              List
+              {t("list")}
             </button>
             <button
               type="button"
@@ -621,7 +626,7 @@ export default function ProjectsPage() {
               }`}
             >
               <LayoutGrid className="h-4 w-4" strokeWidth={1.75} />
-              Kanban
+              {t("kanban")}
             </button>
           </div>
 
@@ -631,7 +636,7 @@ export default function ProjectsPage() {
             className="font-inter flex items-center gap-2 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
-            New Project
+            {t("newProject")}
           </button>
         </div>
       </div>
@@ -641,16 +646,16 @@ export default function ProjectsPage() {
         <div className="mb-6 flex flex-wrap gap-2">
           {FILTERS.map((f) => (
             <button
-              key={f.value}
+              key={f}
               type="button"
-              onClick={() => setFilter(f.value)}
+              onClick={() => setFilter(f)}
               className={`font-inter rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                filter === f.value
+                filter === f
                   ? "bg-[#52634c] text-white"
                   : "border border-[#c4c8be] bg-[#efeeea] text-[#444841] hover:bg-[#e6e4df]"
               }`}
             >
-              {f.label}
+              {f === "ALL" ? t("allProjects") : ts(`project.${f}`)}
             </button>
           ))}
         </div>
@@ -664,12 +669,12 @@ export default function ProjectsPage() {
               <FolderOpen className="h-6 w-6 text-outline" strokeWidth={1.5} />
             </div>
             <p className="font-manrope mt-4 text-base font-semibold text-[#1b1c1a]">
-              No projects here
+              {t("noProjects")}
             </p>
             <p className="font-inter mt-1 text-sm text-[#444841]">
               {filter === "ALL"
-                ? "Create your first project to get started."
-                : `No projects with status “${STATUS_LABEL[filter]}”.`}
+                ? t("emptyDefault")
+                : t("emptyFiltered", { status: ts(`project.${filter}`) })}
             </p>
           </div>
         ) : (
