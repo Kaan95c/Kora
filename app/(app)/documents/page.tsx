@@ -7,6 +7,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { useTranslations } from "next-intl";
 import {
   Plus,
   Search,
@@ -63,12 +64,12 @@ type Option = { id: string; label: string };
 const PER_PAGE = 10;
 const GRID = "2.2fr 0.9fr 1.3fr 1.3fr 0.9fr 0.9fr 1fr 44px";
 
-const TYPE_FILTERS: { label: string; value: DocumentType | "ALL" }[] = [
-  { label: "All", value: "ALL" },
-  { label: "Invoices", value: "INVOICE" },
-  { label: "Quotes", value: "QUOTE" },
-  { label: "Contracts", value: "CONTRACT" },
-  { label: "Proposals", value: "PROPOSAL" },
+const TYPE_FILTERS: { key: string; value: DocumentType | "ALL" }[] = [
+  { key: "typeAll", value: "ALL" },
+  { key: "typeInvoices", value: "INVOICE" },
+  { key: "typeQuotes", value: "QUOTE" },
+  { key: "typeContracts", value: "CONTRACT" },
+  { key: "typeProposals", value: "PROPOSAL" },
 ];
 
 function clientName(d: Doc) {
@@ -130,6 +131,9 @@ function NewDocumentDrawer({
     contactId: "",
     projectId: "",
   };
+  const td = useTranslations("documents");
+  const tc = useTranslations("common");
+  const ts = useTranslations("status");
   const [form, setForm] = useState(empty);
   const [contacts, setContacts] = useState<Option[]>([]);
   const [projects, setProjects] = useState<Option[]>([]);
@@ -174,7 +178,7 @@ function NewDocumentDrawer({
 
   async function handleSave() {
     if (!form.title.trim()) {
-      setError("Title is required.");
+      setError(td("titleRequired"));
       return;
     }
     setSaving(true);
@@ -200,13 +204,13 @@ function NewDocumentDrawer({
           setSaving(false);
           return;
         }
-        setError(data.error ?? "Failed to create document.");
+        setError(data.error ?? td("createFailed"));
         setSaving(false);
         return;
       }
       onCreated();
     } catch {
-      setError("Network error. Please try again.");
+      setError(tc("networkError"));
       setSaving(false);
     }
   }
@@ -221,7 +225,7 @@ function NewDocumentDrawer({
       ? "FAC-2025-005"
       : form.type === "QUOTE"
       ? "DEV-2025-005"
-      : "Optional";
+      : td("numberOptional");
 
   return (
     <div
@@ -242,12 +246,12 @@ function NewDocumentDrawer({
       >
         <div className="flex items-center justify-between border-b border-[#efeeea] px-6 py-5">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-            New Document
+            {td("drawerTitle")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={tc("close")}
             className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
             <X className="h-5 w-5" strokeWidth={1.75} />
@@ -256,18 +260,18 @@ function NewDocumentDrawer({
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
           <div>
-            <label className={labelCls}>Title</label>
+            <label className={labelCls}>{td("docTitle")}</label>
             <input
               className={inputCls}
               value={form.title}
               onChange={(e) => update("title", e.target.value)}
-              placeholder="Brand identity invoice"
+              placeholder={td("titlePlaceholder")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Type</label>
+              <label className={labelCls}>{td("type")}</label>
               <select
                 className={inputCls}
                 value={form.type}
@@ -275,15 +279,15 @@ function NewDocumentDrawer({
                   update("type", e.target.value as DocumentType)
                 }
               >
-                {DOCUMENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {TYPE_CONFIG[t].label}
+                {DOCUMENT_TYPES.map((dt) => (
+                  <option key={dt} value={dt}>
+                    {td(`docTypeLabel.${dt}`)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelCls}>Number</label>
+              <label className={labelCls}>{td("number")}</label>
               <input
                 className={inputCls}
                 value={form.number}
@@ -294,13 +298,13 @@ function NewDocumentDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Client</label>
+            <label className={labelCls}>{td("client")}</label>
             <select
               className={inputCls}
               value={form.contactId}
               onChange={(e) => update("contactId", e.target.value)}
             >
-              <option value="">— No client —</option>
+              <option value="">{td("noClientOption")}</option>
               {contacts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -310,13 +314,13 @@ function NewDocumentDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Project</label>
+            <label className={labelCls}>{td("project")}</label>
             <select
               className={inputCls}
               value={form.projectId}
               onChange={(e) => update("projectId", e.target.value)}
             >
-              <option value="">— No project —</option>
+              <option value="">{td("noProjectOption")}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.label}
@@ -327,7 +331,7 @@ function NewDocumentDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Amount ($)</label>
+              <label className={labelCls}>{td("amount")}</label>
               <input
                 type="number"
                 min="0"
@@ -339,7 +343,7 @@ function NewDocumentDrawer({
               />
             </div>
             <div>
-              <label className={labelCls}>Status</label>
+              <label className={labelCls}>{td("status")}</label>
               <select
                 className={inputCls}
                 value={form.status}
@@ -349,7 +353,7 @@ function NewDocumentDrawer({
               >
                 {DOCUMENT_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {STATUS_CONFIG[s].label}
+                    {ts(`document.${s}`)}
                   </option>
                 ))}
               </select>
@@ -369,7 +373,7 @@ function NewDocumentDrawer({
             onClick={onClose}
             className="font-inter rounded-lg px-4 py-2.5 text-sm font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
-            Cancel
+            {tc("cancel")}
           </button>
           <button
             type="button"
@@ -377,7 +381,7 @@ function NewDocumentDrawer({
             disabled={saving}
             className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? tc("saving") : tc("save")}
           </button>
         </div>
       </aside>
@@ -398,6 +402,9 @@ export default function DocumentsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const { limits } = useAuth();
+  const td = useTranslations("documents");
+  const tc = useTranslations("common");
+  const ts = useTranslations("status");
 
   // Quick Action (Sidebar) → /documents?new=1 ouvre le drawer.
   useNewDrawerParam(() => setDrawerOpen(true));
@@ -484,7 +491,7 @@ export default function DocumentsPage() {
 
   async function handleDelete(id: string) {
     setMenu(null);
-    if (!window.confirm("Delete this document? This cannot be undone.")) return;
+    if (!window.confirm(td("deleteConfirm"))) return;
     setDocs((prev) => (prev ? prev.filter((d) => d.id !== id) : prev));
     const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
     if (!res.ok) await loadDocs();
@@ -502,9 +509,9 @@ export default function DocumentsPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.url) setPayLink(data.url);
-      else window.alert(data.error ?? "Could not create payment link.");
+      else window.alert(data.error ?? td("linkFailed"));
     } catch {
-      window.alert("Network error. Please try again.");
+      window.alert(tc("networkError"));
     } finally {
       setLinkLoading(false);
     }
@@ -555,10 +562,10 @@ export default function DocumentsPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-manrope text-[32px] font-semibold tracking-[-0.01em] text-on-surface">
-            Documents
+            {td("title")}
           </h1>
           <p className="font-manrope mt-1 text-base font-normal text-on-surface-variant">
-            Invoices, quotes and contracts — all in one place.
+            {td("subtitle")}
           </p>
         </div>
         <button
@@ -567,20 +574,20 @@ export default function DocumentsPage() {
           className="font-inter flex items-center gap-2 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
-          New Document
+          {td("newDocument")}
         </button>
       </div>
 
       {/* Stats */}
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
-          label="Total Value"
+          label={td("statTotalValue")}
           value={money(stats.totalValue)}
           tile="#efeeea"
           icon={<FileText className="h-4 w-4 text-[#52634c]" strokeWidth={1.75} />}
         />
         <StatCard
-          label="Paid"
+          label={td("statPaid")}
           value={money(stats.paid)}
           tile="#d5e8cb"
           icon={
@@ -591,13 +598,13 @@ export default function DocumentsPage() {
           }
         />
         <StatCard
-          label="Awaiting"
+          label={td("statAwaiting")}
           value={money(stats.awaiting)}
           tile="#f8dac5"
           icon={<FileClock className="h-4 w-4 text-[#574333]" strokeWidth={1.75} />}
         />
         <StatCard
-          label="Drafts"
+          label={td("statDrafts")}
           value={String(stats.drafts)}
           tile="#ece3d9"
           icon={<FileEdit className="h-4 w-4 text-[#705a4a]" strokeWidth={1.75} />}
@@ -618,7 +625,7 @@ export default function DocumentsPage() {
                   : "border border-[#c4c8be] bg-[#efeeea] text-[#444841] hover:bg-[#e6e4df]"
               }`}
             >
-              {f.label}
+              {td(f.key)}
             </button>
           ))}
         </div>
@@ -633,10 +640,10 @@ export default function DocumentsPage() {
             }
             className="font-inter rounded-lg border border-[#c4c8be] bg-white px-3 py-2.5 text-sm text-[#444841] outline-none transition-colors focus:border-[#52634c]"
           >
-            <option value="ALL">All statuses</option>
+            <option value="ALL">{td("allStatuses")}</option>
             {DOCUMENT_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {STATUS_CONFIG[s].label}
+                {ts(`document.${s}`)}
               </option>
             ))}
           </select>
@@ -648,7 +655,7 @@ export default function DocumentsPage() {
             <input
               value={search}
               onChange={(e) => resetPage(setSearch, e.target.value)}
-              placeholder="Search title or number…"
+              placeholder={td("searchPlaceholder")}
               className="font-inter w-full rounded-lg border border-[#c4c8be] bg-white py-2.5 pl-9 pr-3 text-sm text-[#1b1c1a] outline-none transition-colors placeholder:text-outline focus:border-[#52634c]"
             />
           </div>
@@ -662,8 +669,16 @@ export default function DocumentsPage() {
           className="grid min-w-[1040px] items-center gap-4 border-b border-[#c4c8be]/50 px-6 py-3"
           style={{ gridTemplateColumns: GRID }}
         >
-          {["Document", "Type", "Client", "Project", "Amount", "Status", "Date", ""].map(
-            (h, i) => (
+          {[
+            td("colDocument"),
+            td("colType"),
+            td("colClient"),
+            td("colProject"),
+            td("colAmount"),
+            td("colStatus"),
+            td("colDate"),
+            "",
+          ].map((h, i) => (
               <span
                 key={i}
                 className="font-inter text-[11px] font-semibold uppercase tracking-wide text-[#444841]"
@@ -706,7 +721,7 @@ export default function DocumentsPage() {
               </div>
               {/* Type */}
               <span className="font-inter text-sm text-[#444841]">
-                {t.label}
+                {td(`docTypeLabel.${d.type}`)}
               </span>
               {/* Client */}
               <span className="font-inter truncate text-sm text-[#444841]">
@@ -722,7 +737,7 @@ export default function DocumentsPage() {
               </span>
               {/* Status */}
               <div>
-                <StatusBadge status={st.label} variant={st.variant} />
+                <StatusBadge status={ts(`document.${d.status}`)} variant={st.variant} />
               </div>
               {/* Date */}
               <span className="font-inter text-[13px] text-[#444841]">
@@ -733,7 +748,7 @@ export default function DocumentsPage() {
                 <button
                   type="button"
                   onClick={(e) => openMenu(e, d.id)}
-                  aria-label="Document actions"
+                  aria-label={td("documentActions")}
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-all hover:bg-[#efeeea] ${
                     menu?.id === d.id
                       ? "bg-[#efeeea] opacity-100"
@@ -754,12 +769,12 @@ export default function DocumentsPage() {
               <FileText className="h-6 w-6 text-outline" strokeWidth={1.5} />
             </div>
             <p className="font-manrope mt-4 text-base font-semibold text-[#1b1c1a]">
-              No documents found
+              {td("noDocuments")}
             </p>
             <p className="font-inter mt-1 text-sm text-[#444841]">
               {search || typeFilter !== "ALL" || statusFilter !== "ALL"
-                ? "Try adjusting your filters."
-                : "Create your first invoice, quote or contract."}
+                ? td("emptyFiltered")
+                : td("emptyDefault")}
             </p>
           </div>
         )}
@@ -769,15 +784,14 @@ export default function DocumentsPage() {
       {visible.length > 0 && (
         <div className="mt-4 flex items-center justify-between">
           <span className="font-inter text-[13px] text-[#444841]">
-            Showing {from}-{to} of {visible.length} document
-            {visible.length === 1 ? "" : "s"}
+            {td("showing", { from, to, total: visible.length })}
           </span>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage === 1}
-              aria-label="Previous page"
+              aria-label={tc("previous")}
               className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -800,7 +814,7 @@ export default function DocumentsPage() {
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage === totalPages}
-              aria-label="Next page"
+              aria-label={tc("next")}
               className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] disabled:opacity-40"
             >
               <ChevronRight className="h-4 w-4" />
@@ -837,7 +851,7 @@ export default function DocumentsPage() {
                       className="h-4 w-4 text-[#52634c]"
                       strokeWidth={1.75}
                     />
-                    Mark as {STATUS_CONFIG[s].label}
+                    {td("markAs", { status: ts(`document.${s}`) })}
                   </button>
                 );
               })}
@@ -851,7 +865,7 @@ export default function DocumentsPage() {
                   className="font-inter flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[#1b1c1a] transition-colors hover:bg-[#f5f3f0]"
                 >
                   <Link2 className="h-4 w-4 text-[#52634c]" strokeWidth={1.75} />
-                  Send payment link
+                  {td("sendPaymentLink")}
                 </button>
               </>
             )}
@@ -864,7 +878,7 @@ export default function DocumentsPage() {
               className="font-inter flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[#1b1c1a] transition-colors hover:bg-[#f5f3f0]"
             >
               <Download className="h-4 w-4 text-[#52634c]" strokeWidth={1.75} />
-              Download PDF
+              {td("downloadPdf")}
             </button>
 
             <div className="my-1 border-t border-[#efeeea]" />
@@ -875,7 +889,7 @@ export default function DocumentsPage() {
               className="font-inter flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[#ba1a1a] transition-colors hover:bg-error-container"
             >
               <Trash2 className="h-4 w-4" strokeWidth={1.75} />
-              Delete
+              {tc("delete")}
             </button>
           </div>
         </>
@@ -908,7 +922,7 @@ export default function DocumentsPage() {
       {/* Toast génération du lien */}
       {linkLoading && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#1b1c1a] px-4 py-2 text-sm font-medium text-white shadow-modal">
-          Generating payment link…
+          {td("generatingLink")}
         </div>
       )}
 
@@ -922,19 +936,19 @@ export default function DocumentsPage() {
           <div className="relative mx-4 w-full max-w-[460px] rounded-2xl bg-white p-6 shadow-modal">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-                Payment link
+                {td("paymentLink")}
               </h2>
               <button
                 type="button"
                 onClick={() => setPayLink(null)}
-                aria-label="Close"
+                aria-label={tc("close")}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
               >
                 <X className="h-5 w-5" strokeWidth={1.75} />
               </button>
             </div>
             <p className="font-inter text-sm text-[#444841]">
-              Share this secure link with your client to collect payment.
+              {td("paymentLinkDesc")}
             </p>
             <div className="mt-4 flex items-center gap-2">
               <input
@@ -952,7 +966,7 @@ export default function DocumentsPage() {
                 }}
                 className="font-inter shrink-0 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-95"
               >
-                {copied ? "Copied!" : "Copy"}
+                {copied ? td("copied") : td("copy")}
               </button>
             </div>
             <a
@@ -961,7 +975,7 @@ export default function DocumentsPage() {
               rel="noopener noreferrer"
               className="font-inter mt-3 inline-block text-sm font-medium text-[#52634c] hover:underline"
             >
-              Open payment page →
+              {td("openPaymentPage")}
             </a>
           </div>
         </div>
