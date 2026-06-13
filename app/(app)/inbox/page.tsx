@@ -8,6 +8,7 @@ import {
   type FormEvent,
 } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   Search,
   Plus,
@@ -68,10 +69,10 @@ type ContactOption = { id: string; label: string; status: ContactStatus };
 
 type Filter = "ALL" | "UNREAD" | "SENT";
 
-const FILTERS: { label: string; value: Filter }[] = [
-  { label: "All", value: "ALL" },
-  { label: "Unread", value: "UNREAD" },
-  { label: "Sent", value: "SENT" },
+const FILTERS: { key: string; value: Filter }[] = [
+  { key: "filterAll", value: "ALL" },
+  { key: "filterUnread", value: "UNREAD" },
+  { key: "filterSent", value: "SENT" },
 ];
 
 // ───────────────────────── Avatar ─────────────────────────
@@ -157,6 +158,8 @@ function ComposeModal({
   onClose: () => void;
   onSent: (contactId: string) => void;
 }) {
+  const t = useTranslations("inbox");
+  const tc = useTranslations("common");
   const [contacts, setContacts] = useState<ContactOption[]>([]);
   const [toId, setToId] = useState("");
   const [subject, setSubject] = useState("");
@@ -194,8 +197,8 @@ function ComposeModal({
 
   async function send(e: FormEvent) {
     e.preventDefault();
-    if (!toId) return setError("Choose a recipient.");
-    if (!body.trim()) return setError("Write a message.");
+    if (!toId) return setError(t("chooseRecipient"));
+    if (!body.trim()) return setError(t("writeMessage"));
     setSending(true);
     setError(null);
     const res = await fetch("/api/messages", {
@@ -206,7 +209,7 @@ function ComposeModal({
     setSending(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      return setError(data.error ?? "Failed to send.");
+      return setError(data.error ?? t("sendFailed"));
     }
     onSent(toId);
   }
@@ -226,12 +229,12 @@ function ComposeModal({
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-            New message
+            {t("newMessage")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={tc("close")}
             className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
             <X className="h-5 w-5" strokeWidth={1.75} />
@@ -241,14 +244,14 @@ function ComposeModal({
         <div className="space-y-3">
           <div>
             <label className="font-inter mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#444841]">
-              To
+              {t("to")}
             </label>
             <select
               className={inputCls}
               value={toId}
               onChange={(e) => setToId(e.target.value)}
             >
-              <option value="">Select a contact…</option>
+              <option value="">{t("selectContact")}</option>
               {contacts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -258,25 +261,25 @@ function ComposeModal({
           </div>
           <div>
             <label className="font-inter mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#444841]">
-              Subject
+              {t("subject")}
             </label>
             <input
               className={inputCls}
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="Optional"
+              placeholder={t("subjectOptional")}
             />
           </div>
           <div>
             <label className="font-inter mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#444841]">
-              Message
+              {t("message")}
             </label>
             <textarea
               className={`${inputCls} resize-y`}
               rows={4}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Write your message…"
+              placeholder={t("messagePlaceholder")}
             />
           </div>
           {error && (
@@ -292,7 +295,7 @@ function ComposeModal({
             onClick={onClose}
             className="font-inter rounded-lg px-4 py-2.5 text-sm font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
-            Cancel
+            {tc("cancel")}
           </button>
           <button
             type="submit"
@@ -300,7 +303,7 @@ function ComposeModal({
             className="font-inter flex items-center gap-2 rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
           >
             <Send className="h-4 w-4" strokeWidth={2} />
-            {sending ? "Sending…" : "Send"}
+            {sending ? t("sending") : t("send")}
           </button>
         </div>
       </form>
@@ -328,6 +331,8 @@ export default function InboxPage() {
 
   const messagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const t = useTranslations("inbox");
+  const ts = useTranslations("status");
 
   async function loadConversations() {
     try {
@@ -442,7 +447,7 @@ export default function InboxPage() {
       <div className="flex w-full shrink-0 flex-col border-b border-[#c4c8be]/40 max-md:h-[45%] md:w-[320px] md:border-b-0 md:border-r">
         <div className="flex items-center justify-between px-4 pb-3 pt-4">
           <h1 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-            Inbox
+            {t("title")}
           </h1>
           <button
             type="button"
@@ -450,7 +455,7 @@ export default function InboxPage() {
             className="font-inter flex items-center gap-1.5 rounded-lg bg-[#52634c] px-3 py-1.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} />
-            Compose
+            {t("compose")}
           </button>
         </div>
 
@@ -464,7 +469,7 @@ export default function InboxPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search conversations…"
+              placeholder={t("searchPlaceholder")}
               className="font-inter w-full rounded-lg border border-[#c4c8be] bg-white py-2 pl-9 pr-3 text-sm text-[#1b1c1a] outline-none transition-colors placeholder:text-outline focus:border-[#52634c]"
             />
           </div>
@@ -483,7 +488,7 @@ export default function InboxPage() {
                   : "bg-[#efeeea] text-[#444841] hover:bg-[#e6e4df]"
               }`}
             >
-              {f.label}
+              {t(f.key)}
             </button>
           ))}
         </div>
@@ -504,13 +509,13 @@ export default function InboxPage() {
             </div>
           ) : visible.length === 0 ? (
             <p className="font-inter px-4 py-8 text-center text-sm text-outline">
-              No conversations found.
+              {t("noConversations")}
             </p>
           ) : (
             visible.map((c) => {
               const active = c.contactId === selectedId;
               const preview =
-                (c.lastMessage.direction === "OUTBOUND" ? "You: " : "") +
+                (c.lastMessage.direction === "OUTBOUND" ? t("youPrefix") : "") +
                 c.lastMessage.body;
               return (
                 <button
@@ -535,7 +540,7 @@ export default function InboxPage() {
                       <p className="font-manrope truncate text-sm font-semibold text-[#1b1c1a]">
                         {c.contact
                           ? fullName(c.contact.firstName, c.contact.lastName)
-                          : "Unknown"}
+                          : t("unknown")}
                       </p>
                       <span className="font-inter shrink-0 text-[11px] text-[#444841]">
                         {conversationDate(c.lastMessage.createdAt)}
@@ -574,10 +579,10 @@ export default function InboxPage() {
               strokeWidth={1.5}
             />
             <p className="font-manrope mt-4 text-lg font-medium text-[#444841]">
-              Select a conversation
+              {t("selectConversation")}
             </p>
             <p className="font-inter mt-1 text-sm text-outline">
-              Choose a contact on the left to view your messages.
+              {t("selectHint")}
             </p>
           </div>
         ) : (
@@ -604,7 +609,7 @@ export default function InboxPage() {
                     </p>
                     {detail?.contact && (
                       <StatusBadge
-                        status={STATUS_CONFIG[detail.contact.status].label}
+                        status={ts(`contact.${detail.contact.status}`)}
                         variant={STATUS_CONFIG[detail.contact.status].variant}
                       />
                     )}
@@ -614,7 +619,7 @@ export default function InboxPage() {
                       href={`/contacts/${detail.contact.id}`}
                       className="font-inter mt-0.5 inline-flex items-center gap-1 text-[13px] text-[#52634c] hover:underline"
                     >
-                      View Contact
+                      {t("viewContact")}
                       <ArrowRight className="h-3 w-3" strokeWidth={2} />
                     </Link>
                   )}
@@ -622,7 +627,7 @@ export default function InboxPage() {
               </div>
               <button
                 type="button"
-                aria-label="Conversation options"
+                aria-label={t("conversationOptions")}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea]"
               >
                 <MoreHorizontal className="h-5 w-5" strokeWidth={1.75} />
@@ -633,7 +638,7 @@ export default function InboxPage() {
             <div ref={messagesRef} className="flex-1 overflow-y-auto px-6 py-6">
               {detailLoading && !detail ? (
                 <p className="font-inter text-center text-sm text-outline">
-                  Loading…
+                  {t("loading")}
                 </p>
               ) : (
                 grouped.map((g) => (
@@ -658,7 +663,7 @@ export default function InboxPage() {
               <input
                 value={composerSubject}
                 onChange={(e) => setComposerSubject(e.target.value)}
-                placeholder="Subject (optional)"
+                placeholder={t("composerSubject")}
                 className="font-inter mb-2 w-full rounded-lg bg-[#efeeea] px-3 py-2 text-sm text-[#1b1c1a] outline-none placeholder:text-outline focus:ring-2 focus:ring-[#52634c]/20"
               />
               <textarea
@@ -675,13 +680,13 @@ export default function InboxPage() {
                   }
                 }}
                 rows={3}
-                placeholder="Write a message…"
+                placeholder={t("composerBody")}
                 className="font-inter w-full resize-none rounded-xl bg-[#efeeea] px-3 py-2.5 text-sm text-[#1b1c1a] outline-none placeholder:text-outline focus:ring-2 focus:ring-[#52634c]/20"
               />
               <div className="mt-2 flex items-center justify-between">
                 <button
                   type="button"
-                  aria-label="Attach file"
+                  aria-label={t("attachFile")}
                   className="flex h-9 w-9 items-center justify-center rounded-lg text-outline transition-colors hover:bg-[#efeeea]"
                 >
                   <Paperclip className="h-5 w-5" strokeWidth={1.75} />
@@ -693,7 +698,7 @@ export default function InboxPage() {
                   className="font-inter flex items-center gap-2 rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" strokeWidth={2} />
-                  {sending ? "Sending…" : "Send"}
+                  {sending ? t("sending") : t("send")}
                 </button>
               </div>
             </div>
