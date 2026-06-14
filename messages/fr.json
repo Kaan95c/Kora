@@ -61,7 +61,8 @@
     "tags": "Tags",
     "tagsPlaceholder": "VIP, Newsletter…",
     "requiredFields": "Le prénom, le nom et l'e-mail sont requis.",
-    "createFailed": "Échec de la création du contact."
+    "createFailed": "Échec de la création du contact.",
+    "usageLabel": "contacts"
   },
   "projects": {
     "title": "Projets actifs",
@@ -85,7 +86,8 @@
     "stage": "Étape",
     "startDate": "Date de début",
     "nameRequired": "Le nom est requis.",
-    "createFailed": "Échec de la création du projet."
+    "createFailed": "Échec de la création du projet.",
+    "usageLabel": "projets"
   },
   "documents": {
     "title": "Documents",
@@ -139,6 +141,7 @@
     "status": "Statut",
     "titleRequired": "Le titre est requis.",
     "createFailed": "Échec de la création du document.",
+    "usageLabel": "documents",
     "docTypeLabel": {
       "INVOICE": "Facture",
       "QUOTE": "Devis",
@@ -324,6 +327,25 @@
       "ADD_TAG": "Ajouter un tag",
       "SEND_REMINDER": "Envoyer un rappel"
     }
+  },
+  "usage": {
+    "usedSuffix": "{label} utilisés",
+    "unlimited": "Illimité",
+    "limitReached": "Limite atteinte"
+  },
+  "planLimit": {
+    "title": "Limite de votre plan atteinte",
+    "later": "Plus tard",
+    "viewPlans": "Voir les plans"
+  },
+  "errors": {
+    "label": "Erreur",
+    "title": "Une erreur est survenue",
+    "description": "Quelque chose s'est mal passé de notre côté. Vous pouvez réessayer ou revenir au tableau de bord.",
+    "retry": "Réessayer",
+    "backToDashboard": "Retour au tableau de bord",
+    "notFoundTitle": "Page introuvable",
+    "notFoundText": "La page que vous cherchez n'existe pas ou a été déplacée."
   },
   "nav": {
     "dashboard": "Tableau de bord",

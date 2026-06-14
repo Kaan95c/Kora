@@ -676,7 +676,7 @@ export default function ContactsPage() {
 
       {/* Compteur d'usage (contacts hors archivés) */}
       <UsageMeter
-        label="contacts"
+        label={t("usageLabel")}
         current={contacts.filter((c) => c.status !== "ARCHIVED").length}
         max={limits ? limits.contacts : undefined}
       />

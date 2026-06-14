@@ -696,7 +696,7 @@ export default function ProjectsPage() {
 
       {/* Compteur d'usage */}
       <UsageMeter
-        label="projets"
+        label={t("usageLabel")}
         current={projects.length}
         max={limits ? limits.projects : undefined}
       />

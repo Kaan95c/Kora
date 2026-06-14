@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Sparkles, X } from "lucide-react";
 
 /**
@@ -14,6 +15,8 @@ export function PlanLimitDialog({
   message: string | null;
   onClose: () => void;
 }) {
+  const t = useTranslations("planLimit");
+  const tc = useTranslations("common");
   if (!message) return null;
 
   return (
@@ -26,7 +29,7 @@ export function PlanLimitDialog({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={tc("close")}
           className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
         >
           <X className="h-5 w-5" strokeWidth={1.75} />
@@ -37,7 +40,7 @@ export function PlanLimitDialog({
         </span>
 
         <h2 className="font-manrope mt-4 text-lg font-semibold text-[#1b1c1a]">
-          Limite de votre plan atteinte
+          {t("title")}
         </h2>
         <p className="font-inter mt-2 text-sm leading-relaxed text-[#444841]">
           {message}
@@ -49,14 +52,14 @@ export function PlanLimitDialog({
             onClick={onClose}
             className="font-inter rounded-lg px-4 py-2.5 text-sm font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
-            Plus tard
+            {t("later")}
           </button>
           <Link
             href="/settings/billing"
             onClick={onClose}
             className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
           >
-            Voir les plans
+            {t("viewPlans")}
           </Link>
         </div>
       </div>

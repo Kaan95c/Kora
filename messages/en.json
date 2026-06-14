@@ -61,7 +61,8 @@
     "tags": "Tags",
     "tagsPlaceholder": "VIP, Newsletter…",
     "requiredFields": "First name, last name and email are required.",
-    "createFailed": "Failed to create contact."
+    "createFailed": "Failed to create contact.",
+    "usageLabel": "contacts"
   },
   "projects": {
     "title": "Active Projects",
@@ -85,7 +86,8 @@
     "stage": "Stage",
     "startDate": "Start date",
     "nameRequired": "Name is required.",
-    "createFailed": "Failed to create project."
+    "createFailed": "Failed to create project.",
+    "usageLabel": "projects"
   },
   "documents": {
     "title": "Documents",
@@ -139,6 +141,7 @@
     "status": "Status",
     "titleRequired": "Title is required.",
     "createFailed": "Failed to create document.",
+    "usageLabel": "documents",
     "docTypeLabel": {
       "INVOICE": "Invoice",
       "QUOTE": "Quote",
@@ -324,6 +327,25 @@
       "ADD_TAG": "Add Tag",
       "SEND_REMINDER": "Send Reminder"
     }
+  },
+  "usage": {
+    "usedSuffix": "{label} used",
+    "unlimited": "Unlimited",
+    "limitReached": "Limit reached"
+  },
+  "planLimit": {
+    "title": "You've reached your plan limit",
+    "later": "Maybe later",
+    "viewPlans": "View plans"
+  },
+  "errors": {
+    "label": "Error",
+    "title": "Something went wrong",
+    "description": "Something went wrong on our end. You can try again or go back to the dashboard.",
+    "retry": "Try again",
+    "backToDashboard": "Back to dashboard",
+    "notFoundTitle": "Page not found",
+    "notFoundText": "The page you're looking for doesn't exist or has been moved."
   },
   "nav": {
     "dashboard": "Dashboard",

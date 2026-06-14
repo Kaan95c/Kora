@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 /**
  * Compteur discret d'usage par rapport au plan, en bas d'une liste.
  * - `max === undefined` → caps pas encore chargés (rien affiché).
@@ -15,6 +17,7 @@ export function UsageMeter({
   current: number;
   max: number | null | undefined;
 }) {
+  const t = useTranslations("usage");
   if (max === undefined) return null;
 
   if (max === null) {
@@ -24,7 +27,7 @@ export function UsageMeter({
           {current} {label}
         </span>
         <span className="rounded-full bg-[#d5e8cb] px-2 py-0.5 font-semibold text-[#3b4b36]">
-          Illimité
+          {t("unlimited")}
         </span>
       </div>
     );
@@ -40,11 +43,11 @@ export function UsageMeter({
           <span className="font-semibold text-[#1b1c1a]">
             {current}/{max}
           </span>{" "}
-          {label} utilisés
+          {t("usedSuffix", { label })}
         </span>
         {reached && (
           <span className="font-inter rounded-full bg-[#fbe2cb] px-2 py-0.5 text-[11px] font-semibold text-[#92400e]">
-            Limite atteinte
+            {t("limitReached")}
           </span>
         )}
       </div>

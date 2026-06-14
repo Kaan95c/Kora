@@ -897,7 +897,7 @@ export default function DocumentsPage() {
 
       {/* Compteur d'usage */}
       <UsageMeter
-        label="documents"
+        label={td("usageLabel")}
         current={docs.length}
         max={limits ? limits.documents : undefined}
       />
