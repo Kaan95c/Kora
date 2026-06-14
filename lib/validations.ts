@@ -51,6 +51,27 @@ export const projectCreateSchema = z.object({
 export const projectStatusSchema = z.object({
   status: z.enum(PROJECT_STATUS),
 });
+/** PATCH = mise à jour partielle (header, infos, notes) → tout optionnel. */
+export const projectUpdateSchema = z.object({
+  name: z.string().trim().min(1, "Le nom est requis.").max(150).optional(),
+  status: z.enum(PROJECT_STATUS).optional(),
+  contactId: z.string().trim().min(1).nullish(),
+  description: z.string().trim().max(5000).nullish(),
+  notes: z.string().trim().max(10000).nullish(),
+  totalAmount: z.union([z.number(), z.string()]).nullish(),
+  startDate: z.string().trim().nullish(),
+  endDate: z.string().trim().nullish(),
+});
+
+// ───────────────────────── Task ─────────────────────────
+export const taskCreateSchema = z.object({
+  title: z.string().trim().min(1, "Le titre est requis.").max(200),
+});
+export const taskUpdateSchema = z.object({
+  taskId: z.string().trim().min(1, "taskId est requis."),
+  title: z.string().trim().min(1).max(200).optional(),
+  completed: z.boolean().optional(),
+});
 
 // ───────────────────────── Document ─────────────────────────
 const DOCUMENT_TYPE = ["INVOICE", "QUOTE", "CONTRACT", "PROPOSAL"] as const;

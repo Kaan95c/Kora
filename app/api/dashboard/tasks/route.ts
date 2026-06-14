@@ -25,7 +25,7 @@ export const GET = withApi(async () => {
       title: true,
       description: true,
       priority: true,
-      project: { select: { name: true } },
+      project: { select: { id: true, name: true } },
     },
   });
 

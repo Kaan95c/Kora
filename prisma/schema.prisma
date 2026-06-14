@@ -188,6 +188,8 @@ model Project {
   id          String        @id @default(cuid())
   name        String
   status      ProjectStatus @default(ACTIVE)
+  description String?
+  notes       String?
   totalAmount Float         @default(0)
   paidAmount  Float         @default(0)
   startDate   DateTime?
