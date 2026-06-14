@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   DndContext,
@@ -120,7 +122,10 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
   const pct = progress(project);
 
   return (
-    <div className="group rounded-2xl bg-white p-6 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
+    <Link
+      href={`/projects/${project.id}`}
+      className="group block rounded-2xl bg-white p-6 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
+    >
       <div className="flex items-start justify-between">
         <div
           className="flex h-11 w-11 items-center justify-center rounded-xl"
@@ -172,7 +177,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
           })}
         </span>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -180,6 +185,8 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
 
 function KanbanCard({ project }: { project: Project }) {
   const t = useTranslations("projects");
+  const router = useRouter();
+  const downPos = useRef<{ x: number; y: number } | null>(null);
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: project.id });
   const pct = progress(project);
@@ -195,8 +202,17 @@ function KanbanCard({ project }: { project: Project }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
       {...attributes}
+      {...listeners}
+      onPointerDown={(e) => {
+        downPos.current = { x: e.clientX, y: e.clientY };
+        listeners?.onPointerDown?.(e);
+      }}
+      onClick={(e) => {
+        const p = downPos.current;
+        if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 6) return;
+        router.push(`/projects/${project.id}`);
+      }}
       className={`cursor-grab touch-none rounded-xl border border-[#c4c8be]/50 bg-white p-3 active:cursor-grabbing ${
         isDragging ? "opacity-60 shadow-card-hover" : "shadow-sm"
       }`}

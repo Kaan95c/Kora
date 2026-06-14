@@ -60,7 +60,7 @@ type DashboardTask = {
   title: string;
   description: string | null;
   priority: string;
-  project: { name: string } | null;
+  project: { id: string; name: string } | null;
 };
 
 // ─── Config visuelle des cartes "Urgent Tasks" (par index) ───
@@ -439,6 +439,10 @@ export default function DashboardPage() {
             {tasks.map((task, i) => {
               const visual = TASK_VISUALS[i % TASK_VISUALS.length];
               const Icon = visual.Icon;
+              const href =
+                visual.linkKey === "reviewNow" && task.project?.id
+                  ? `/projects/${task.project.id}`
+                  : visual.href;
               return (
                 <div key={task.id} className="rounded-xl bg-[#fbf9f5] p-4">
                   <div className="flex items-start gap-3">
@@ -457,7 +461,7 @@ export default function DashboardPage() {
                         </p>
                       )}
                       <Link
-                        href={visual.href}
+                        href={href}
                         className="font-inter mt-2 inline-block text-xs font-medium text-[#52634c] hover:underline"
                       >
                         {t(visual.linkKey)}
