@@ -16,6 +16,11 @@
 - **Navigation** : cartes `/projects` cliquables (List `<Link>`, Kanban `onClick` gardé par distance de drag > 6 px) ; `GET /api/dashboard/tasks` renvoie `project.id` → « Review Now » → `/projects/[id]`.
 - **i18n** : namespace `projectDetail` (FR/EN). **Décisions** : Budget = `totalAmount` existant ; statuts = enum réel (pas « Lead/Completed » du brief). `npm run build` + `tsc --noEmit` exit 0.
 
+**⏳ Prochaine session — reprise 2026-06-16 (ordre de priorité)**
+1. **Onboarding wizard** (PRIORITÉ) — un `/register` crée une Company **vide** (seul l'historique seed était rattaché à un compte). Prévoir un wizard de démarrage après inscription (infos studio + premiers contacts/projets ou données d'exemple) pour que le nouveau compte n'arrive pas sur des pages vides.
+2. **Relances automatiques** — brancher les **Automations** sur **Resend** (envois différés via `delayHours`) + un déclencheur (cron / queue).
+3. **Inbox master/détail mobile** — UX dédiée < `md` (bascule liste ↔ conversation ; aujourd'hui les deux colonnes sont empilées).
+
 ---
 
 ## 📅 Journal — Session du 2026-06-14
