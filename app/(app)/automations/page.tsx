@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import {
   Plus,
   Zap,
@@ -19,8 +20,6 @@ import {
   ACTION_TYPES,
   TRIGGER_CONFIG,
   ACTION_CONFIG,
-  lastTriggeredLabel,
-  delayLabel,
   type AutomationTrigger,
   type ActionType,
 } from "@/lib/automations";
@@ -125,6 +124,8 @@ function AutomationDrawer({
   onSaved: () => void;
   onLimit: (message: string) => void;
 }) {
+  const tr = useTranslations("automations");
+  const tc = useTranslations("common");
   const [trigger, setTrigger] = useState<AutomationTrigger | null>(null);
   const [actions, setActions] = useState<FormAction[]>([]);
   const [name, setName] = useState("");
@@ -188,8 +189,8 @@ function AutomationDrawer({
   }
 
   async function save() {
-    if (!trigger) return setError("Pick a trigger.");
-    if (!name.trim()) return setError("Give your automation a name.");
+    if (!trigger) return setError(tr("pickTrigger"));
+    if (!name.trim()) return setError(tr("nameRequired"));
     setSaving(true);
     setError(null);
     const payload = {
@@ -216,7 +217,7 @@ function AutomationDrawer({
       if (res.status === 403 && data?.code === "PLAN_LIMIT_REACHED") {
         return onLimit(data.error);
       }
-      return setError(data.error ?? "Failed to save.");
+      return setError(data.error ?? tr("saveFailed"));
     }
     onSaved();
   }
@@ -240,12 +241,12 @@ function AutomationDrawer({
       >
         <div className="flex items-center justify-between border-b border-[#efeeea] px-6 py-5">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-            {editing ? "Edit Automation" : "New Automation"}
+            {editing ? tr("editAutomation") : tr("newAutomation")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={tc("close")}
             className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
             <X className="h-5 w-5" strokeWidth={1.75} />
@@ -256,12 +257,11 @@ function AutomationDrawer({
           {/* Étape 1 — Trigger */}
           <div>
             <h3 className="font-manrope text-sm font-semibold text-[#1b1c1a]">
-              When this happens…
+              {tr("whenThisHappens")}
             </h3>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {TRIGGERS.map((t) => {
-                const cfg = TRIGGER_CONFIG[t];
-                const Icon = cfg.icon;
+                const Icon = TRIGGER_CONFIG[t].icon;
                 const active = trigger === t;
                 return (
                   <button
@@ -279,7 +279,7 @@ function AutomationDrawer({
                       strokeWidth={1.75}
                     />
                     <span className="font-inter text-[13px] font-medium text-[#1b1c1a]">
-                      {cfg.label}
+                      {tr(`triggers.${t}`)}
                     </span>
                   </button>
                 );
@@ -291,7 +291,7 @@ function AutomationDrawer({
           <div>
             <div className="flex items-center justify-between">
               <h3 className="font-manrope text-sm font-semibold text-[#1b1c1a]">
-                Then do this…
+                {tr("thenDoThis")}
               </h3>
               <button
                 type="button"
@@ -299,14 +299,14 @@ function AutomationDrawer({
                 className="font-inter flex items-center gap-1 rounded-lg border border-[#c4c8be] bg-white px-2.5 py-1.5 text-xs font-medium text-[#52634c] transition-colors hover:bg-[#f5f3f0]"
               >
                 <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-                Add action
+                {tr("addAction")}
               </button>
             </div>
 
             <div className="mt-3 space-y-2">
               {actions.length === 0 && (
                 <p className="font-inter rounded-xl border border-dashed border-[#c4c8be] py-5 text-center text-xs text-outline">
-                  No actions yet — add at least one.
+                  {tr("noActions")}
                 </p>
               )}
               {actions.map((a, i) => (
@@ -319,7 +319,7 @@ function AutomationDrawer({
                       type="button"
                       onClick={() => move(i, -1)}
                       disabled={i === 0}
-                      aria-label="Move up"
+                      aria-label={tr("moveUp")}
                       className="text-outline transition-colors hover:text-[#1b1c1a] disabled:opacity-30"
                     >
                       <ArrowUp className="h-3.5 w-3.5" strokeWidth={2} />
@@ -328,7 +328,7 @@ function AutomationDrawer({
                       type="button"
                       onClick={() => move(i, 1)}
                       disabled={i === actions.length - 1}
-                      aria-label="Move down"
+                      aria-label={tr("moveDown")}
                       className="text-outline transition-colors hover:text-[#1b1c1a] disabled:opacity-30"
                     >
                       <ArrowDown className="h-3.5 w-3.5" strokeWidth={2} />
@@ -344,7 +344,7 @@ function AutomationDrawer({
                   >
                     {ACTION_TYPES.map((t) => (
                       <option key={t} value={t}>
-                        {ACTION_CONFIG[t].label}
+                        {tr(`actions.${t}`)}
                       </option>
                     ))}
                   </select>
@@ -356,7 +356,7 @@ function AutomationDrawer({
                     onChange={(e) =>
                       updateAction(a.key, "delayValue", e.target.value)
                     }
-                    aria-label="Delay"
+                    aria-label={tr("delayAria")}
                     className="font-inter w-14 rounded-lg border border-[#c4c8be] bg-white px-2 py-2 text-[13px] text-[#1b1c1a] outline-none focus:border-[#52634c]"
                   />
                   <select
@@ -370,14 +370,14 @@ function AutomationDrawer({
                     }
                     className="font-inter rounded-lg border border-[#c4c8be] bg-white px-1.5 py-2 text-[13px] text-[#444841] outline-none focus:border-[#52634c]"
                   >
-                    <option value="hours">hrs</option>
-                    <option value="days">days</option>
+                    <option value="hours">{tr("unitHours")}</option>
+                    <option value="days">{tr("unitDays")}</option>
                   </select>
 
                   <button
                     type="button"
                     onClick={() => removeAction(a.key)}
-                    aria-label="Remove action"
+                    aria-label={tr("removeAction")}
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-outline transition-colors hover:bg-error-container hover:text-[#93000a]"
                   >
                     <X className="h-4 w-4" strokeWidth={1.75} />
@@ -390,19 +390,19 @@ function AutomationDrawer({
           {/* Étape 3 — Nom */}
           <div>
             <h3 className="font-manrope text-sm font-semibold text-[#1b1c1a]">
-              Name
+              {tr("nameLabel")}
             </h3>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Automation name"
+              placeholder={tr("namePlaceholder")}
               className="font-inter mt-3 w-full rounded-lg border border-[#c4c8be] bg-white px-3 py-2.5 text-sm text-[#1b1c1a] outline-none transition-colors placeholder:text-outline focus:border-[#52634c]"
             />
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              placeholder="Description (optional)"
+              placeholder={tr("descriptionPlaceholder")}
               className="font-inter mt-2 w-full resize-y rounded-lg border border-[#c4c8be] bg-white px-3 py-2.5 text-sm text-[#1b1c1a] outline-none transition-colors placeholder:text-outline focus:border-[#52634c]"
             />
           </div>
@@ -420,7 +420,7 @@ function AutomationDrawer({
             onClick={onClose}
             className="font-inter rounded-lg px-4 py-2.5 text-sm font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
-            Cancel
+            {tc("cancel")}
           </button>
           <button
             type="button"
@@ -428,7 +428,11 @@ function AutomationDrawer({
             disabled={saving}
             className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
           >
-            {saving ? "Saving…" : editing ? "Save automation" : "Create automation"}
+            {saving
+              ? tc("saving")
+              : editing
+              ? tr("saveAutomation")
+              : tr("createAutomation")}
           </button>
         </div>
       </aside>
@@ -472,12 +476,29 @@ function StatCard({
 // ───────────────────────── Page ─────────────────────────
 
 export default function AutomationsPage() {
+  const tr = useTranslations("automations");
   const [automations, setAutomations] = useState<Automation[] | null>(null);
   const [drawer, setDrawer] = useState<{ open: boolean; editing: Automation | null }>(
     { open: false, editing: null }
   );
   const [limitMsg, setLimitMsg] = useState<string | null>(null);
   const { limits } = useAuth();
+
+  // Libellés relatifs localisés (remplacent les helpers anglais de lib).
+  const lastTriggered = (d: string | null) => {
+    if (!d) return tr("neverTriggered");
+    const mins = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+    if (mins < 1) return tr("triggeredJustNow");
+    if (mins < 60) return tr("lastTriggeredMin", { count: mins });
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return tr("lastTriggeredHours", { count: hours });
+    return tr("lastTriggeredDays", { count: Math.floor(hours / 24) });
+  };
+  const delay = (hours: number) => {
+    if (!hours) return tr("immediately");
+    if (hours < 24) return tr("delayHours", { count: hours });
+    return tr("delayDays", { count: Math.round(hours / 24) });
+  };
 
   async function load() {
     try {
@@ -518,7 +539,7 @@ export default function AutomationsPage() {
   }
 
   async function remove(a: Automation) {
-    if (!window.confirm(`Delete "${a.name}"?`)) return;
+    if (!window.confirm(tr("deleteConfirm", { name: a.name }))) return;
     setAutomations((prev) => (prev ? prev.filter((x) => x.id !== a.id) : prev));
     const res = await fetch(`/api/automations/${a.id}`, { method: "DELETE" });
     if (!res.ok) load();
@@ -555,10 +576,10 @@ export default function AutomationsPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-manrope text-[28px] font-semibold tracking-[-0.01em] text-[#1b1c1a]">
-            Automations
+            {tr("title")}
           </h1>
           <p className="font-inter mt-1 text-base text-[#444841]">
-            Automate your client workflows.
+            {tr("subtitle")}
           </p>
         </div>
         <button
@@ -567,27 +588,27 @@ export default function AutomationsPage() {
           className="font-inter flex items-center gap-2 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
-          New Automation
+          {tr("newAutomation")}
         </button>
       </div>
 
       {/* Stats */}
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
-          label="Active automations"
+          label={tr("statActive")}
           value={String(stats.active)}
           tile="#d5e8cb"
           icon={<Zap className="h-4 w-4 text-[#3b4b36]" strokeWidth={1.75} />}
         />
         <StatCard
-          label="Triggered this month"
+          label={tr("statTriggered")}
           value={String(stats.triggered)}
           tile="#f8dac5"
           icon={<TrendingUp className="h-4 w-4 text-[#574333]" strokeWidth={1.75} />}
         />
         <StatCard
-          label="Time saved"
-          value={`${stats.timeSaved}h`}
+          label={tr("statTimeSaved")}
+          value={tr("timeSaved", { hours: stats.timeSaved })}
           tile="#efeeea"
           icon={<Clock className="h-4 w-4 text-[#52634c]" strokeWidth={1.75} />}
         />
@@ -600,17 +621,16 @@ export default function AutomationsPage() {
             <Zap className="h-6 w-6 text-outline" strokeWidth={1.5} />
           </div>
           <p className="font-manrope mt-4 text-base font-semibold text-[#1b1c1a]">
-            No automations yet
+            {tr("emptyTitle")}
           </p>
           <p className="font-inter mt-1 text-sm text-[#444841]">
-            Create your first workflow to save time on repetitive tasks.
+            {tr("emptyText")}
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {automations.map((a) => {
-            const tcfg = TRIGGER_CONFIG[a.trigger];
-            const TIcon = tcfg.icon;
+            const TIcon = TRIGGER_CONFIG[a.trigger].icon;
             return (
               <div
                 key={a.id}
@@ -632,39 +652,38 @@ export default function AutomationsPage() {
 
                 {/* Flow */}
                 <div className="mt-4 flex flex-wrap items-center gap-1.5">
-                  <FlowBlock icon={TIcon} label={tcfg.label} variant="trigger" />
-                  {a.actions.map((act) => {
-                    const acfg = ACTION_CONFIG[act.type];
-                    return (
-                      <span key={act.id} className="flex items-center gap-1.5">
-                        <ChevronRight
-                          className="h-3.5 w-3.5 text-[#c4c8be]"
-                          strokeWidth={2}
-                        />
-                        <FlowBlock
-                          icon={acfg.icon}
-                          label={`${acfg.label}${
-                            act.delayHours
-                              ? ` · ${delayLabel(act.delayHours)}`
-                              : ""
-                          }`}
-                          variant="action"
-                        />
-                      </span>
-                    );
-                  })}
+                  <FlowBlock
+                    icon={TIcon}
+                    label={tr(`triggers.${a.trigger}`)}
+                    variant="trigger"
+                  />
+                  {a.actions.map((act) => (
+                    <span key={act.id} className="flex items-center gap-1.5">
+                      <ChevronRight
+                        className="h-3.5 w-3.5 text-[#c4c8be]"
+                        strokeWidth={2}
+                      />
+                      <FlowBlock
+                        icon={ACTION_CONFIG[act.type].icon}
+                        label={`${tr(`actions.${act.type}`)}${
+                          act.delayHours ? ` · ${delay(act.delayHours)}` : ""
+                        }`}
+                        variant="action"
+                      />
+                    </span>
+                  ))}
                 </div>
 
                 {/* Footer */}
                 <div className="mt-4 flex items-center justify-between border-t border-[#f5f3f0] pt-3">
                   <span className="font-inter text-xs text-[#444841]">
-                    {lastTriggeredLabel(a.lastTriggeredAt)}
+                    {lastTriggered(a.lastTriggeredAt)}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setDrawer({ open: true, editing: a })}
-                      aria-label="Edit automation"
+                      aria-label={tr("editAria")}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea]"
                     >
                       <Pencil className="h-4 w-4" strokeWidth={1.75} />
@@ -672,7 +691,7 @@ export default function AutomationsPage() {
                     <button
                       type="button"
                       onClick={() => remove(a)}
-                      aria-label="Delete automation"
+                      aria-label={tr("deleteAria")}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-error-container hover:text-[#93000a]"
                     >
                       <Trash2 className="h-4 w-4" strokeWidth={1.75} />
@@ -687,7 +706,7 @@ export default function AutomationsPage() {
 
       {/* Compteur d'usage */}
       <UsageMeter
-        label="automatisations"
+        label={tr("usageLabel")}
         current={automations.length}
         max={limits ? limits.automations : undefined}
       />
