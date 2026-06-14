@@ -228,6 +228,43 @@
       "Sunday": "Sunday"
     }
   },
+  "finance": {
+    "title": "Finance Overview",
+    "subtitle": "Track your revenue, expenses, and transaction health.",
+    "exportCsv": "Export CSV",
+    "revenueTrends": "Revenue Trends",
+    "revenueTrendsDesc": "Performance comparison: Collected vs Expected",
+    "collected": "Collected",
+    "expected": "Expected",
+    "totalRevenue": "Total Revenue",
+    "fromLastMonth": "{value}% from last month",
+    "outstandingInvoices": "Outstanding Invoices",
+    "pending": "{count} Pending",
+    "actionRequired": "Action required",
+    "recentTransactions": "Recent Transactions",
+    "colDate": "Date",
+    "colClient": "Client",
+    "colTransactionId": "Transaction ID",
+    "colAmount": "Amount",
+    "colStatus": "Status",
+    "colMethod": "Method",
+    "noTransactions": "No transactions yet.",
+    "showing": "Showing {from}-{to} of {total, plural, one {# transaction} other {# transactions}}",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "status": {
+      "PAID": "Paid",
+      "PENDING": "Pending",
+      "OVERDUE": "Overdue",
+      "REFUNDED": "Refunded"
+    },
+    "method": {
+      "CARD": "Card",
+      "BANK_TRANSFER": "Bank transfer",
+      "SEPA": "SEPA",
+      "CASH": "Cash"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "contacts": "Contacts",

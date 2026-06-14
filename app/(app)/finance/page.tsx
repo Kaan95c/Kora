@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Download, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { StatusBadge, type StatusVariant } from "@/components/shared/StatusBadge";
 
@@ -36,12 +37,15 @@ type FinanceData = {
   transactions: Transaction[];
 };
 
-const TX_STATUS: Record<string, { label: string; variant: StatusVariant }> = {
-  PAID: { label: "Paid", variant: "paid" },
-  PENDING: { label: "Pending", variant: "pending" },
-  OVERDUE: { label: "Overdue", variant: "overdue" },
-  REFUNDED: { label: "Refunded", variant: "draft" },
+const TX_VARIANT: Record<string, StatusVariant> = {
+  PAID: "paid",
+  PENDING: "pending",
+  OVERDUE: "overdue",
+  REFUNDED: "draft",
 };
+
+const TX_STATUSES = ["PAID", "PENDING", "OVERDUE", "REFUNDED"];
+const TX_METHODS = ["CARD", "BANK_TRANSFER", "SEPA", "CASH"];
 
 const PER_PAGE = 5;
 
@@ -69,21 +73,6 @@ function fmtDate(d: string) {
   });
 }
 
-function methodLabel(m: string | null) {
-  switch (m) {
-    case "CARD":
-      return "Card";
-    case "BANK_TRANSFER":
-      return "Bank transfer";
-    case "SEPA":
-      return "SEPA";
-    case "CASH":
-      return "Cash";
-    default:
-      return m ?? "";
-  }
-}
-
 function csvCell(v: string) {
   return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
@@ -91,8 +80,13 @@ function csvCell(v: string) {
 // ───────────────────────── Page ─────────────────────────
 
 export default function FinancePage() {
+  const t = useTranslations("finance");
   const [data, setData] = useState<FinanceData | null>(null);
   const [page, setPage] = useState(1);
+
+  const txLabel = (s: string) => (TX_STATUSES.includes(s) ? t(`status.${s}`) : s);
+  const methodLabel = (m: string | null) =>
+    m && TX_METHODS.includes(m) ? t(`method.${m}`) : m ?? "";
 
   useEffect(() => {
     fetch("/api/finance")
@@ -123,19 +117,19 @@ export default function FinancePage() {
   function exportCSV() {
     if (!data) return;
     const header = [
-      "Date",
-      "Client",
-      "Transaction ID",
-      "Amount",
-      "Status",
-      "Method",
+      t("colDate"),
+      t("colClient"),
+      t("colTransactionId"),
+      t("colAmount"),
+      t("colStatus"),
+      t("colMethod"),
     ];
     const rows = data.transactions.map((tx) => [
       fmtDate(tx.date),
       clientName(tx.contact),
       `#${tx.id.slice(0, 8).toUpperCase()}`,
       tx.amount.toFixed(2),
-      TX_STATUS[tx.status]?.label ?? tx.status,
+      txLabel(tx.status),
       methodLabel(tx.method),
     ]);
     const csv = [header, ...rows]
@@ -182,10 +176,10 @@ export default function FinancePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-manrope text-[32px] font-semibold tracking-[-0.01em] text-[#1b1c1a]">
-            Finance Overview
+            {t("title")}
           </h1>
           <p className="font-inter mt-1 text-base text-[#444841]">
-            Track your revenue, expenses, and transaction health.
+            {t("subtitle")}
           </p>
         </div>
         <button
@@ -194,7 +188,7 @@ export default function FinancePage() {
           className="font-inter flex items-center gap-2 rounded-lg border-[1.5px] border-[#52634c] bg-transparent px-4 py-2.5 text-sm font-medium text-[#52634c] transition-all hover:-translate-y-px hover:bg-[#d5e8cb]/40"
         >
           <Download className="h-4 w-4" strokeWidth={2} />
-          Export CSV
+          {t("exportCsv")}
         </button>
       </div>
 
@@ -205,20 +199,20 @@ export default function FinancePage() {
           <div className="mb-4 flex items-start justify-between">
             <div>
               <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-                Revenue Trends
+                {t("revenueTrends")}
               </h2>
               <p className="font-inter mt-0.5 text-[13px] text-[#444841]">
-                Performance comparison: Collected vs Expected
+                {t("revenueTrendsDesc")}
               </p>
             </div>
             <div className="flex items-center gap-4">
               <span className="font-inter flex items-center gap-1.5 text-xs font-medium text-[#444841]">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#52634c]" />
-                Collected
+                {t("collected")}
               </span>
               <span className="font-inter flex items-center gap-1.5 text-xs font-medium text-[#444841]">
                 <span className="h-2.5 w-2.5 rounded-full border border-[#705a4a] bg-[#f8dac5]" />
-                Expected
+                {t("expected")}
               </span>
             </div>
           </div>
@@ -265,13 +259,13 @@ export default function FinancePage() {
                 dataKey="collected"
                 fill="#52634c"
                 radius={[4, 4, 0, 0]}
-                name="Collected"
+                name={t("collected")}
               />
               <Bar
                 dataKey="expected"
                 fill="#f8dac5"
                 radius={[4, 4, 0, 0]}
-                name="Expected"
+                name={t("expected")}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -286,31 +280,34 @@ export default function FinancePage() {
               strokeWidth={1.5}
             />
             <p className="font-inter text-xs font-semibold uppercase tracking-wide text-white/70">
-              Total Revenue
+              {t("totalRevenue")}
             </p>
             <p className="font-manrope mt-2 text-[40px] font-bold leading-none">
               ${money2(data.totalRevenue)}
             </p>
             <span className="font-inter mt-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
-              {data.totalRevenueGrowth >= 0 ? "+" : ""}
-              {data.totalRevenueGrowth}% from last month
+              {t("fromLastMonth", {
+                value: `${data.totalRevenueGrowth >= 0 ? "+" : ""}${
+                  data.totalRevenueGrowth
+                }`,
+              })}
             </span>
           </div>
 
           {/* Outstanding Invoices */}
           <div className="relative flex-1 overflow-hidden rounded-2xl bg-[#705a4a] p-6 text-white">
             <p className="font-inter text-xs font-semibold uppercase tracking-wide text-white/70">
-              Outstanding Invoices
+              {t("outstandingInvoices")}
             </p>
             <p className="font-manrope mt-2 text-[40px] font-bold leading-none">
               ${money2(data.outstandingAmount)}
             </p>
             <div className="mt-3 flex items-center gap-2">
               <span className="font-inter rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
-                {data.outstandingCount} Pending
+                {t("pending", { count: data.outstandingCount })}
               </span>
               <span className="font-inter rounded-full bg-[#ba1a1a]/30 px-3 py-1 text-xs font-semibold">
-                Action required
+                {t("actionRequired")}
               </span>
             </div>
           </div>
@@ -321,13 +318,19 @@ export default function FinancePage() {
       <div className="mt-6 overflow-x-auto rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-            Recent Transactions
+            {t("recentTransactions")}
           </h2>
         </div>
 
         {/* Header colonnes */}
         <div className="grid min-w-[640px] grid-cols-5 border-b border-[#c4c8be]/50 pb-3">
-          {["Date", "Client", "Transaction ID", "Amount", "Status"].map((h) => (
+          {[
+            t("colDate"),
+            t("colClient"),
+            t("colTransactionId"),
+            t("colAmount"),
+            t("colStatus"),
+          ].map((h) => (
             <span
               key={h}
               className="font-inter text-[11px] font-semibold uppercase tracking-wide text-[#444841]"
@@ -340,10 +343,7 @@ export default function FinancePage() {
         {/* Lignes */}
         <div>
           {pageItems.map((tx) => {
-            const st = TX_STATUS[tx.status] ?? {
-              label: tx.status,
-              variant: "draft" as StatusVariant,
-            };
+            const variant = TX_VARIANT[tx.status] ?? ("draft" as StatusVariant);
             return (
               <div
                 key={tx.id}
@@ -367,14 +367,14 @@ export default function FinancePage() {
                   ${money2(tx.amount)}
                 </span>
                 <div>
-                  <StatusBadge status={st.label} variant={st.variant} />
+                  <StatusBadge status={txLabel(tx.status)} variant={variant} />
                 </div>
               </div>
             );
           })}
           {pageItems.length === 0 && (
             <p className="font-inter py-10 text-center text-sm text-[#444841]">
-              No transactions yet.
+              {t("noTransactions")}
             </p>
           )}
         </div>
@@ -382,14 +382,14 @@ export default function FinancePage() {
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between">
           <span className="font-inter text-[13px] text-[#444841]">
-            Showing {from}-{to} of {transactions.length} transactions
+            {t("showing", { from, to, total: transactions.length })}
           </span>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage === 1}
-              aria-label="Previous page"
+              aria-label={t("previousPage")}
               className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -412,7 +412,7 @@ export default function FinancePage() {
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage === totalPages}
-              aria-label="Next page"
+              aria-label={t("nextPage")}
               className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] disabled:opacity-40"
             >
               <ChevronRight className="h-4 w-4" />

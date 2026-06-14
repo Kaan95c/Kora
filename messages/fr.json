@@ -228,6 +228,43 @@
       "Sunday": "Dimanche"
     }
   },
+  "finance": {
+    "title": "Aperçu financier",
+    "subtitle": "Suivez vos revenus, vos dépenses et la santé de vos transactions.",
+    "exportCsv": "Exporter CSV",
+    "revenueTrends": "Tendances des revenus",
+    "revenueTrendsDesc": "Comparaison : Encaissé vs Attendu",
+    "collected": "Encaissé",
+    "expected": "Attendu",
+    "totalRevenue": "Revenu total",
+    "fromLastMonth": "{value}% par rapport au mois dernier",
+    "outstandingInvoices": "Factures impayées",
+    "pending": "{count} en attente",
+    "actionRequired": "Action requise",
+    "recentTransactions": "Transactions récentes",
+    "colDate": "Date",
+    "colClient": "Client",
+    "colTransactionId": "N° de transaction",
+    "colAmount": "Montant",
+    "colStatus": "Statut",
+    "colMethod": "Moyen",
+    "noTransactions": "Aucune transaction pour l'instant.",
+    "showing": "Affichage de {from}-{to} sur {total, plural, one {# transaction} other {# transactions}}",
+    "previousPage": "Page précédente",
+    "nextPage": "Page suivante",
+    "status": {
+      "PAID": "Payé",
+      "PENDING": "En attente",
+      "OVERDUE": "En retard",
+      "REFUNDED": "Remboursé"
+    },
+    "method": {
+      "CARD": "Carte",
+      "BANK_TRANSFER": "Virement",
+      "SEPA": "SEPA",
+      "CASH": "Espèces"
+    }
+  },
   "nav": {
     "dashboard": "Tableau de bord",
     "contacts": "Contacts",
