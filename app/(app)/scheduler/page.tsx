@@ -7,6 +7,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { useTranslations } from "next-intl";
 import {
   Plus,
   X,
@@ -94,6 +95,8 @@ function AppointmentDrawer({
   onSaved: () => void;
   onDeleted: () => void;
 }) {
+  const tr = useTranslations("scheduler");
+  const tc = useTranslations("common");
   const [title, setTitle] = useState("");
   const [sessionTypeId, setSessionTypeId] = useState("");
   const [contactId, setContactId] = useState("");
@@ -146,8 +149,8 @@ function AppointmentDrawer({
   }
 
   async function handleSave() {
-    if (!title.trim()) return setError("Title is required.");
-    if (!date || !start) return setError("Date and start time are required.");
+    if (!title.trim()) return setError(tr("titleRequired"));
+    if (!date || !start) return setError(tr("dateRequired"));
     setSaving(true);
     setError(null);
     const startAt = combineLocal(date, start).toISOString();
@@ -171,20 +174,20 @@ function AppointmentDrawer({
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Failed to save appointment.");
+        setError(data.error ?? tr("saveFailed"));
         setSaving(false);
         return;
       }
       onSaved();
     } catch {
-      setError("Network error. Please try again.");
+      setError(tc("networkError"));
       setSaving(false);
     }
   }
 
   async function handleDelete() {
     if (!editing) return;
-    if (!window.confirm("Delete this appointment?")) return;
+    if (!window.confirm(tr("deleteConfirm"))) return;
     setSaving(true);
     const res = await fetch(`/api/appointments/${editing.id}`, {
       method: "DELETE",
@@ -217,12 +220,12 @@ function AppointmentDrawer({
       >
         <div className="flex items-center justify-between border-b border-[#efeeea] px-6 py-5">
           <h2 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
-            {editing ? "Edit Appointment" : "New Appointment"}
+            {editing ? tr("editAppointment") : tr("newAppointment")}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={tc("close")}
             className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#f5f3f0]"
           >
             <X className="h-5 w-5" strokeWidth={1.75} />
@@ -231,23 +234,23 @@ function AppointmentDrawer({
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
           <div>
-            <label className={labelCls}>Title</label>
+            <label className={labelCls}>{tr("appointmentTitle")}</label>
             <input
               className={inputCls}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Brand identity kickoff"
+              placeholder={tr("titlePlaceholder")}
             />
           </div>
 
           <div>
-            <label className={labelCls}>Session type</label>
+            <label className={labelCls}>{tr("sessionType")}</label>
             <select
               className={inputCls}
               value={sessionTypeId}
               onChange={(e) => pickType(e.target.value)}
             >
-              <option value="">— None —</option>
+              <option value="">{tr("none")}</option>
               {types.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} · {t.duration} min
@@ -257,13 +260,13 @@ function AppointmentDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Client</label>
+            <label className={labelCls}>{tr("client")}</label>
             <select
               className={inputCls}
               value={contactId}
               onChange={(e) => setContactId(e.target.value)}
             >
-              <option value="">— No client —</option>
+              <option value="">{tr("noClient")}</option>
               {contacts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -273,7 +276,7 @@ function AppointmentDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Date</label>
+            <label className={labelCls}>{tr("date")}</label>
             <input
               type="date"
               className={inputCls}
@@ -284,7 +287,7 @@ function AppointmentDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Start</label>
+              <label className={labelCls}>{tr("start")}</label>
               <input
                 type="time"
                 className={inputCls}
@@ -293,7 +296,7 @@ function AppointmentDrawer({
               />
             </div>
             <div>
-              <label className={labelCls}>End</label>
+              <label className={labelCls}>{tr("end")}</label>
               <input
                 type="time"
                 className={inputCls}
@@ -304,13 +307,13 @@ function AppointmentDrawer({
           </div>
 
           <div>
-            <label className={labelCls}>Notes</label>
+            <label className={labelCls}>{tr("notes")}</label>
             <textarea
               rows={3}
               className={`${inputCls} resize-y`}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Location, agenda, links…"
+              placeholder={tr("notesPlaceholder")}
             />
           </div>
 
@@ -330,7 +333,7 @@ function AppointmentDrawer({
               className="font-inter flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium text-[#ba1a1a] transition-colors hover:bg-error-container disabled:opacity-60"
             >
               <Trash2 className="h-4 w-4" strokeWidth={1.75} />
-              Delete
+              {tc("delete")}
             </button>
           ) : (
             <span />
@@ -341,7 +344,7 @@ function AppointmentDrawer({
               onClick={onClose}
               className="font-inter rounded-lg px-4 py-2.5 text-sm font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
             >
-              Cancel
+              {tc("cancel")}
             </button>
             <button
               type="button"
@@ -349,7 +352,7 @@ function AppointmentDrawer({
               disabled={saving}
               className="font-inter rounded-lg bg-[#52634c] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95 disabled:opacity-60"
             >
-              {saving ? "Saving…" : editing ? "Save" : "Create"}
+              {saving ? tc("saving") : editing ? tc("save") : tr("create")}
             </button>
           </div>
         </div>
@@ -523,6 +526,7 @@ function MonthCalendar({
   onSelect: (a: Appt) => void;
   onCreateAt: (d: Date) => void;
 }) {
+  const tr = useTranslations("scheduler");
   const weeks = useMemo(() => monthMatrix(cursor), [cursor]);
 
   return (
@@ -596,7 +600,7 @@ function MonthCalendar({
                 })}
                 {dayAppts.length > 3 && (
                   <p className="font-inter px-1.5 text-[10px] font-semibold text-outline">
-                    +{dayAppts.length - 3} more
+                    {tr("more", { count: dayAppts.length - 3 })}
                   </p>
                 )}
               </div>
@@ -617,6 +621,8 @@ function SessionTypesPanel({
   types: SessionType[];
   onChanged: () => void;
 }) {
+  const tr = useTranslations("scheduler");
+  const tc = useTranslations("common");
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("30");
@@ -652,12 +658,12 @@ function SessionTypesPanel({
     <div className="rounded-2xl bg-white p-5 shadow-card">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-manrope text-base font-semibold text-[#1b1c1a]">
-          Session Types
+          {tr("sessionTypes")}
         </h3>
         <button
           type="button"
           onClick={() => setAdding((v) => !v)}
-          aria-label="Add session type"
+          aria-label={tr("addSessionType")}
           className="flex h-7 w-7 items-center justify-center rounded-full bg-[#efeeea] text-[#444841] transition-colors hover:bg-[#e6e4df]"
         >
           <Plus className="h-4 w-4" strokeWidth={2} />
@@ -684,13 +690,13 @@ function SessionTypesPanel({
                   {t.duration} min
                 </span>
                 <span className="text-outline">·</span>
-                <span>{t.price != null ? `$${t.price}` : "Free"}</span>
+                <span>{t.price != null ? `$${t.price}` : tr("free")}</span>
               </p>
             </div>
             <button
               type="button"
               onClick={() => remove(t.id)}
-              aria-label={`Delete ${t.name}`}
+              aria-label={tr("deleteType", { name: t.name })}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-outline opacity-0 transition-all hover:bg-error-container hover:text-[#93000a] group-hover:opacity-100"
             >
               <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -700,7 +706,7 @@ function SessionTypesPanel({
 
         {types.length === 0 && !adding && (
           <p className="font-inter py-2 text-center text-xs text-outline">
-            No session types yet.
+            {tr("noSessionTypes")}
           </p>
         )}
       </div>
@@ -710,7 +716,7 @@ function SessionTypesPanel({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Discovery Call"
+            placeholder={tr("namePlaceholder")}
             className="font-inter w-full rounded-lg border border-[#c4c8be] bg-white px-3 py-2 text-sm outline-none focus:border-[#52634c]"
           />
           <div className="grid grid-cols-2 gap-2">
@@ -720,7 +726,7 @@ function SessionTypesPanel({
               step="5"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              placeholder="Min"
+              placeholder={tr("minPlaceholder")}
               className="font-inter w-full rounded-lg border border-[#c4c8be] bg-white px-3 py-2 text-sm outline-none focus:border-[#52634c]"
             />
             <input
@@ -728,7 +734,7 @@ function SessionTypesPanel({
               min="0"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="Price ($)"
+              placeholder={tr("pricePlaceholder")}
               className="font-inter w-full rounded-lg border border-[#c4c8be] bg-white px-3 py-2 text-sm outline-none focus:border-[#52634c]"
             />
           </div>
@@ -738,7 +744,7 @@ function SessionTypesPanel({
                 key={c}
                 type="button"
                 onClick={() => setColor(c)}
-                aria-label={`Color ${c}`}
+                aria-label={tr("colorAria", { c })}
                 className={`h-6 w-6 rounded-full transition-transform ${
                   color === c ? "ring-2 ring-[#1b1c1a] ring-offset-1" : ""
                 }`}
@@ -752,7 +758,7 @@ function SessionTypesPanel({
               onClick={() => setAdding(false)}
               className="font-inter rounded-lg px-3 py-1.5 text-xs font-medium text-[#444841] hover:bg-[#e6e4df]"
             >
-              Cancel
+              {tc("cancel")}
             </button>
             <button
               type="button"
@@ -761,7 +767,7 @@ function SessionTypesPanel({
               className="font-inter flex items-center gap-1 rounded-lg bg-[#52634c] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-95 disabled:opacity-60"
             >
               <Check className="h-3.5 w-3.5" strokeWidth={2} />
-              Add
+              {tr("add")}
             </button>
           </div>
         </div>
@@ -783,14 +789,15 @@ const AVAILABILITY = [
 ];
 
 function AvailabilityPanel() {
+  const tr = useTranslations("scheduler");
   return (
     <div className="rounded-2xl bg-white p-5 shadow-card">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-manrope text-base font-semibold text-[#1b1c1a]">
-          Weekly Availability
+          {tr("weeklyAvailability")}
         </h3>
         <span className="font-inter rounded-full bg-[#efeeea] px-2 py-0.5 text-[10px] font-semibold text-outline">
-          Soon
+          {tr("soon")}
         </span>
       </div>
       <div className="space-y-1.5">
@@ -812,7 +819,7 @@ function AvailabilityPanel() {
                 />
               </span>
               <span className="font-inter text-sm font-medium text-[#1b1c1a]">
-                {a.day}
+                {tr(`weekdays.${a.day}`)}
               </span>
             </div>
             <span
@@ -820,13 +827,13 @@ function AvailabilityPanel() {
                 a.on ? "text-[#444841]" : "text-outline"
               }`}
             >
-              {a.range}
+              {a.on ? a.range : tr("unavailable")}
             </span>
           </div>
         ))}
       </div>
       <p className="font-inter mt-3 text-[11px] leading-relaxed text-outline">
-        Connect your public booking page to let clients self-schedule.
+        {tr("availabilityHint")}
       </p>
     </div>
   );
@@ -864,6 +871,7 @@ function ViewToggleButton({
 // ───────────────────────── Page ─────────────────────────
 
 export default function SchedulerPage() {
+  const tr = useTranslations("scheduler");
   const [appts, setAppts] = useState<Appt[] | null>(null);
   const [types, setTypes] = useState<SessionType[]>([]);
   const [contacts, setContacts] = useState<Option[]>([]);
@@ -972,10 +980,10 @@ export default function SchedulerPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-manrope text-[32px] font-semibold tracking-[-0.01em] text-on-surface">
-            Scheduler
+            {tr("title")}
           </h1>
           <p className="font-manrope mt-1 text-base font-normal text-on-surface-variant">
-            Plan your sessions and manage your booking types.
+            {tr("subtitle")}
           </p>
         </div>
         <button
@@ -984,7 +992,7 @@ export default function SchedulerPage() {
           className="font-inter flex items-center gap-2 rounded-lg bg-[#52634c] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-px hover:opacity-95"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
-          New Appointment
+          {tr("newAppointment")}
         </button>
       </div>
 
@@ -998,7 +1006,7 @@ export default function SchedulerPage() {
                 <button
                   type="button"
                   onClick={goPrev}
-                  aria-label="Previous"
+                  aria-label={tr("previous")}
                   className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea]"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -1006,7 +1014,7 @@ export default function SchedulerPage() {
                 <button
                   type="button"
                   onClick={goNext}
-                  aria-label="Next"
+                  aria-label={tr("next")}
                   className="flex h-8 w-8 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea]"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -1020,7 +1028,7 @@ export default function SchedulerPage() {
                 onClick={goToday}
                 className="font-inter rounded-full border border-[#c4c8be] px-3 py-1 text-xs font-medium text-[#444841] transition-colors hover:bg-[#f5f3f0]"
               >
-                Today
+                {tr("today")}
               </button>
             </div>
 
@@ -1030,13 +1038,13 @@ export default function SchedulerPage() {
                 active={view === "week"}
                 onClick={() => setView("week")}
                 icon={<LayoutGrid className="h-4 w-4" strokeWidth={1.75} />}
-                label="Week"
+                label={tr("week")}
               />
               <ViewToggleButton
                 active={view === "month"}
                 onClick={() => setView("month")}
                 icon={<CalendarDays className="h-4 w-4" strokeWidth={1.75} />}
-                label="Month"
+                label={tr("month")}
               />
             </div>
           </div>
