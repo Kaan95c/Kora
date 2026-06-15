@@ -11,6 +11,9 @@
 
 const ALLOWED_ORIGINS = [
   "https://kora-app.fr",
+  // Conservé pendant la transition de domaine (étape 30) — à retirer une fois
+  // que plus aucun trafic ne passe par l'ancien sous-domaine.
+  "https://app.kora-app.fr",
   "http://localhost:3000",
 ];
 
