@@ -2,16 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import {
   Wallet,
   FolderOpen,
@@ -21,8 +13,19 @@ import {
   Mail,
 } from "lucide-react";
 
+// Recharts est lourd et non critique au 1er rendu → chargé en différé (chunk
+// séparé), avec un placeholder à la même hauteur pour éviter le saut de layout.
+const RevenueAreaChart = dynamic(
+  () => import("@/components/dashboard/RevenueAreaChart"),
+  {
+    ssr: false,
+    loading: () => <div className="h-[220px] w-full animate-pulse rounded-xl bg-[#efeeea]" />,
+  }
+);
+
 import StatusBadge from "@/components/shared/StatusBadge";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { readCache, writeCache, CACHE_KEYS } from "@/lib/hooks/useResourceCache";
 
 // ───────────────────────── Types ─────────────────────────
 
@@ -63,6 +66,15 @@ type DashboardTask = {
   project: { id: string; name: string } | null;
 };
 
+// Bundle mis en cache pour un retour instantané sur le dashboard (read-only).
+type DashboardBundle = {
+  metrics: Metrics;
+  revenueChart: RevenuePoint[];
+  projects: DashboardProject[];
+  appointments: DashboardAppointment[];
+  tasks: DashboardTask[];
+};
+
 // ─── Config visuelle des cartes "Urgent Tasks" (par index) ───
 const TASK_VISUALS = [
   { Icon: AlertCircle, color: "#ba1a1a", linkKey: "reviewNow", href: "/projects" },
@@ -88,14 +100,22 @@ export default function DashboardPage() {
     (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] ??
     "there";
 
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [revenueChart, setRevenueChart] = useState<RevenuePoint[] | null>(null);
-  const [projects, setProjects] = useState<DashboardProject[] | null>(null);
+  // Cache client : réaffiche le dernier dashboard connu d'office, revalidé au mount.
+  const cached = readCache<DashboardBundle>(CACHE_KEYS.dashboard);
+  const [metrics, setMetrics] = useState<Metrics | null>(cached?.metrics ?? null);
+  const [revenueChart, setRevenueChart] = useState<RevenuePoint[] | null>(
+    cached?.revenueChart ?? null
+  );
+  const [projects, setProjects] = useState<DashboardProject[] | null>(
+    cached?.projects ?? null
+  );
   const [appointments, setAppointments] = useState<
     DashboardAppointment[] | null
-  >(null);
-  const [tasks, setTasks] = useState<DashboardTask[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  >(cached?.appointments ?? null);
+  const [tasks, setTasks] = useState<DashboardTask[] | null>(
+    cached?.tasks ?? null
+  );
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     async function load() {
@@ -109,6 +129,13 @@ export default function DashboardPage() {
           ),
           fetch("/api/dashboard/tasks").then((res) => res.json()),
         ]);
+        writeCache(CACHE_KEYS.dashboard, {
+          metrics: m,
+          revenueChart: r,
+          projects: p,
+          appointments: a,
+          tasks: t,
+        });
         setMetrics(m);
         setRevenueChart(r);
         setProjects(p);
@@ -248,59 +275,7 @@ export default function DashboardPage() {
               <option value="30">{t("last30Days")}</option>
             </select>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart
-              data={revenueChart}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#52634c" stopOpacity={0.15} />
-                  <stop offset="100%" stopColor="#52634c" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#c4c8be"
-                opacity={0.4}
-                vertical={false}
-              />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 11, fill: "#444841" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tickFormatter={(value) => `$${Number(value) / 1000}k`}
-                tick={{ fontSize: 11, fill: "#444841" }}
-                tickLine={false}
-                axisLine={false}
-                width={45}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: "#ffffff",
-                  border: "1px solid #c4c8be",
-                  borderRadius: 8,
-                  fontSize: 13,
-                }}
-                formatter={(value) => [
-                  `$${Number(value).toLocaleString()}`,
-                  "Revenue",
-                ]}
-              />
-              <Area
-                type="monotone"
-                dataKey="amount"
-                stroke="#52634c"
-                strokeWidth={2}
-                fill="url(#revenueGradient)"
-                dot={{ fill: "#52634c", r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: "#52634c" }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <RevenueAreaChart data={revenueChart} />
         </div>
 
         {/* Upcoming */}

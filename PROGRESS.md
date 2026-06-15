@@ -7,6 +7,19 @@
 
 ---
 
+## 📅 Journal — Session du 2026-06-16 (suite)
+
+**✅ Terminé — Optimisation des performances de navigation (étape 29)**
+- **Audit** : les 14 pages `(app)` sont **100 % client-side + fetch en `useEffect`** (aucun SSR, aucun cache → chaque retour sur une page refait tout le chargement). Coût secondaire = **double `getUser()` Supabase** par chargement (middleware + `getAuthedCompany` dans chaque route API). Bundles lourds (Recharts) chargés en synchrone (Dashboard 358 kB / Finance 293 kB). Pas de `loading.tsx`.
+- **Cache client « stale-while-revalidate »** (`lib/hooks/useResourceCache.ts`, Map module-level, durée = onglet) appliqué à **Dashboard** (bundle des 5 endpoints, read-only), **Contacts** et **Projects** (init de l'état depuis le cache + write après fetch + miroir sur mutation optimiste + garde anti-vidage si revalidation échoue). **Retour sur une page = instantané**, revalidé en fond. `AuthProvider` : **warm-start `sessionStorage`** de `/api/auth/me` (lu après montage → pas de mismatch d'hydratation ; purgé au sign-out).
+- **⚠️ Décision** : **PAS** de `Cache-Control` HTTP sur `/api/auth/me|contacts|projects` (routes **authentifiées par cookie** + `force-dynamic`) → risque de **fuite inter-utilisateurs** (cache partagé) et de **données périmées après création/édition**. Le cache est donc strictement **côté client**.
+- **`app/(app)/loading.tsx`** : skeleton générique instantané (supprime l'écran blanc entre pages).
+- **Recharts en `next/dynamic`** (`ssr:false` + placeholder) : graphiques extraits dans `components/dashboard/RevenueAreaChart.tsx` + `components/finance/RevenueBarChart.tsx`. **First Load JS : Dashboard 358→255 kB, Finance 293→187 kB** (Recharts déplacé dans un chunk différé).
+- **Prefetch `<Link>`** : déjà actif par défaut (App Router) → vérifié, rien à changer.
+- **Reste recommandé (non fait, blast-radius auth/sécurité)** : supprimer le **double `getUser()`** (middleware pose `x-user-id` validé → routes le lisent au lieu de re-`getUser`) → gain au **premier** chargement. `npm run build` + `tsc --noEmit` exit 0.
+
+---
+
 ## 📅 Journal — Session du 2026-06-16
 
 **✅ Terminé aujourd'hui — Onboarding wizard (étape 28)**
@@ -119,7 +132,8 @@
 | Étape 26 — **Internationalisation FR/EN** (`next-intl`, cookie `kora-locale`, switcher Settings ; 9 pages + shell + auth + labels partagés + error/404 traduits ; dates/nombres non i18n par convention) | ✅ Fait — ⚠️ reste Settings studio/branding/billing + légal/landing |
 | Étape 27 — **Page détail projet** (`/projects/[id]` : header éditable + infos client/description/budget + tâches CRUD + docs liés + notes autosave ; routes `GET/PATCH/DELETE` + `[id]/tasks` ; cartes & dashboard → détail ; migration `description`/`notes`) | ✅ Fait |
 | Étape 28 — **Onboarding wizard** (`/onboarding` hors `(app)`, 4 étapes : studio/client/projet/récap ; soumission groupée → studio+contact+project+complete ; migration `Company.onboardedAt` + backfill `db:mark-onboarded` ; redirections register/OAuth + `OnboardingGate` ; i18n FR/EN) | ✅ Fait |
-| Étapes suivantes | ⏳ Relances auto (automations + cron), Inbox master/détail mobile, i18n Settings studio/branding/billing |
+| Étape 29 — **Perf navigation** (cache client SWR `useResourceCache` sur Dashboard/Contacts/Projects + warm-start AuthProvider ; `loading.tsx` ; Recharts en `dynamic` → Dashboard 358→255 kB, Finance 293→187 kB) | ✅ Fait |
+| Étapes suivantes | ⏳ Relances auto (automations + cron), Inbox master/détail mobile, i18n Settings studio/branding/billing, *(perf : supprimer le double getUser)* |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
 **Les 9 pages sont complètes et branchées aux vraies données — plus aucun placeholder.** 🎉

@@ -56,6 +56,10 @@ export const AuthContext = createContext<AuthContextValue>({
   isLoading: true,
 });
 
+// Warm-start (par onglet) de /api/auth/me : la company + les limites s'affichent
+// instantanément au rechargement, puis sont revalidées par le fetch réseau.
+const ME_CACHE_KEY = "kora-auth-me";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [company, setCompany] = useState<Company>(null);
@@ -65,6 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
 
+    // Warm-start : lu APRÈS le montage (jamais en SSR) → pas de mismatch d'hydratation.
+    try {
+      const raw = sessionStorage.getItem(ME_CACHE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        setCompany(data.company ?? null);
+        setLimits(data.limits ?? null);
+      }
+    } catch {
+      /* sessionStorage indisponible ou JSON corrompu → ignoré */
+    }
+
     async function loadCompany() {
       try {
         const res = await fetch("/api/auth/me");
@@ -72,6 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const data = await res.json();
           setCompany(data.company ?? null);
           setLimits(data.limits ?? null);
+          try {
+            sessionStorage.setItem(
+              ME_CACHE_KEY,
+              JSON.stringify({ company: data.company ?? null, limits: data.limits ?? null })
+            );
+          } catch {
+            /* quota / mode privé → on ignore le warm-start */
+          }
         } else {
           setCompany(null);
           setLimits(null);
@@ -93,6 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setCompany(null);
         setLimits(null);
+        try {
+          sessionStorage.removeItem(ME_CACHE_KEY);
+        } catch {
+          /* ignoré */
+        }
       }
       setIsLoading(false);
     });

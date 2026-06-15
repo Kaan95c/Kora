@@ -19,6 +19,7 @@ import { UsageMeter } from "@/components/shared/UsageMeter";
 import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useNewDrawerParam } from "@/lib/hooks/useNewDrawerParam";
+import { readCache, writeCache, CACHE_KEYS } from "@/lib/hooks/useResourceCache";
 import {
   STATUS_CONFIG,
   initials,
@@ -365,7 +366,10 @@ function NewContactDrawer({
 
 export default function ContactsPage() {
   const router = useRouter();
-  const [contacts, setContacts] = useState<Contact[] | null>(null);
+  // Cache client : affiche d'office la dernière liste connue, revalidée au mount.
+  const [contacts, setContacts] = useState<Contact[] | null>(
+    () => readCache<Contact[]>(CACHE_KEYS.contacts) ?? null
+  );
   const [filter, setFilter] = useState<ContactStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -383,9 +387,12 @@ export default function ContactsPage() {
     try {
       const res = await fetch("/api/contacts");
       const data = await res.json();
-      setContacts(Array.isArray(data) ? data : []);
+      const list: Contact[] = Array.isArray(data) ? data : [];
+      writeCache(CACHE_KEYS.contacts, list);
+      setContacts(list);
     } catch {
-      setContacts([]);
+      // Échec de revalidation : on garde la donnée en cache plutôt que de vider.
+      setContacts((prev) => prev ?? []);
     }
   }
 
@@ -427,14 +434,15 @@ export default function ContactsPage() {
 
   async function handleArchive(id: string) {
     if (!window.confirm(t("archiveConfirm"))) return;
-    // Optimiste : passe en ARCHIVED localement.
-    setContacts((prev) =>
-      prev
-        ? prev.map((c) =>
-            c.id === id ? { ...c, status: "ARCHIVED" as ContactStatus } : c
-          )
-        : prev
-    );
+    // Optimiste : passe en ARCHIVED localement (+ miroir cache pour le retour).
+    setContacts((prev) => {
+      if (!prev) return prev;
+      const next = prev.map((c) =>
+        c.id === id ? { ...c, status: "ARCHIVED" as ContactStatus } : c
+      );
+      writeCache(CACHE_KEYS.contacts, next);
+      return next;
+    });
     const res = await fetch(`/api/contacts/${id}`, { method: "DELETE" });
     if (!res.ok) await loadContacts();
   }

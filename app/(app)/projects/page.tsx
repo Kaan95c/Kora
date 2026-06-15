@@ -32,6 +32,7 @@ import { UsageMeter } from "@/components/shared/UsageMeter";
 import { PlanLimitDialog } from "@/components/shared/PlanLimitDialog";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useNewDrawerParam } from "@/lib/hooks/useNewDrawerParam";
+import { readCache, writeCache, CACHE_KEYS } from "@/lib/hooks/useResourceCache";
 
 // ───────────────────────── Types & constantes ─────────────────────────
 
@@ -497,7 +498,10 @@ function NewProjectDrawer({
 // ───────────────────────── Page ─────────────────────────
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[] | null>(null);
+  // Cache client : affiche d'office la dernière liste connue, revalidée au mount.
+  const [projects, setProjects] = useState<Project[] | null>(
+    () => readCache<Project[]>(CACHE_KEYS.projects) ?? null
+  );
   const [view, setView] = useState<"list" | "kanban">("list");
   const [filter, setFilter] = useState<ProjectStatus | "ALL">("ALL");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -517,9 +521,12 @@ export default function ProjectsPage() {
     try {
       const res = await fetch("/api/projects");
       const data = await res.json();
-      setProjects(Array.isArray(data) ? data : []);
+      const list: Project[] = Array.isArray(data) ? data : [];
+      writeCache(CACHE_KEYS.projects, list);
+      setProjects(list);
     } catch {
-      setProjects([]);
+      // Échec de revalidation : on garde la donnée en cache plutôt que de vider.
+      setProjects((prev) => prev ?? []);
     }
   }
 
@@ -560,12 +567,15 @@ export default function ProjectsPage() {
     const current = projects.find((p) => p.id === projectId);
     if (!current || current.status === newStatus) return;
 
-    // Optimiste
-    setProjects((prev) =>
-      prev
-        ? prev.map((p) => (p.id === projectId ? { ...p, status: newStatus } : p))
-        : prev
-    );
+    // Optimiste (+ miroir cache pour un retour cohérent).
+    setProjects((prev) => {
+      if (!prev) return prev;
+      const next = prev.map((p) =>
+        p.id === projectId ? { ...p, status: newStatus } : p
+      );
+      writeCache(CACHE_KEYS.projects, next);
+      return next;
+    });
 
     const res = await fetch(`/api/projects/${projectId}`, {
       method: "PATCH",

@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { Download, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { StatusBadge, type StatusVariant } from "@/components/shared/StatusBadge";
+
+// Recharts chargé en différé (chunk séparé) — placeholder à hauteur égale.
+const RevenueBarChart = dynamic(
+  () => import("@/components/finance/RevenueBarChart"),
+  {
+    ssr: false,
+    loading: () => <div className="h-[200px] w-full animate-pulse rounded-xl bg-[#efeeea]" />,
+  }
+);
 
 // ───────────────────────── Types ─────────────────────────
 
@@ -217,58 +218,11 @@ export default function FinancePage() {
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart
-              data={data.revenueChart}
-              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-              barGap={4}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#c4c8be"
-                opacity={0.3}
-                vertical={false}
-              />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 11, fill: "#444841" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tickFormatter={(value) => `$${Number(value) / 1000}k`}
-                tick={{ fontSize: 11, fill: "#444841" }}
-                tickLine={false}
-                axisLine={false}
-                width={45}
-              />
-              <Tooltip
-                cursor={{ fill: "rgba(82,99,76,0.06)" }}
-                contentStyle={{
-                  background: "#ffffff",
-                  border: "1px solid #c4c8be",
-                  borderRadius: 8,
-                  fontSize: 13,
-                }}
-                formatter={(value, name) => [
-                  `$${Number(value).toLocaleString()}`,
-                  name,
-                ]}
-              />
-              <Bar
-                dataKey="collected"
-                fill="#52634c"
-                radius={[4, 4, 0, 0]}
-                name={t("collected")}
-              />
-              <Bar
-                dataKey="expected"
-                fill="#f8dac5"
-                radius={[4, 4, 0, 0]}
-                name={t("expected")}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <RevenueBarChart
+            data={data.revenueChart}
+            collectedLabel={t("collected")}
+            expectedLabel={t("expected")}
+          />
         </div>
 
         {/* Colonne droite */}
