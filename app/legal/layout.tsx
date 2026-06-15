@@ -55,7 +55,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
             © 2026 Kora — Kaan Tekten
           </p>
           <p className="font-inter text-xs text-[#747870]">
-            app.kora-app.fr ·{" "}
+            kora-app.fr ·{" "}
             <a
               href="mailto:hello@kora-app.fr"
               className="text-[#52634c] hover:underline"

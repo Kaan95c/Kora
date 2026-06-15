@@ -21,7 +21,7 @@ export default function CgvPage() {
         Les présentes Conditions Générales de Vente (CGV) régissent la
         souscription et l&apos;utilisation du service{" "}
         <strong>Kora</strong> (
-        <a href="https://app.kora-app.fr">app.kora-app.fr</a>), édité par Kaan
+        <a href="https://kora-app.fr">kora-app.fr</a>), édité par Kaan
         Tekten (voir <a href="/legal/mentions">mentions légales</a>). Elles
         s&apos;appliquent à tout client, professionnel ou consommateur, qui
         souscrit à un abonnement. La souscription implique l&apos;acceptation

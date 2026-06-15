@@ -4,7 +4,7 @@ import { LegalProse } from "@/components/legal/LegalProse";
 
 export const metadata: Metadata = {
   title: "Mentions légales — Kora",
-  description: "Mentions légales du service Kora (app.kora-app.fr).",
+  description: "Mentions légales du service Kora (kora-app.fr).",
 };
 
 export default function MentionsLegalesPage() {
@@ -18,7 +18,7 @@ export default function MentionsLegalesPage() {
       <h2>1. Éditeur du service</h2>
       <p>
         Le service <strong>Kora</strong>, accessible à l&apos;adresse{" "}
-        <a href="https://app.kora-app.fr">app.kora-app.fr</a>, est édité par :
+        <a href="https://kora-app.fr">kora-app.fr</a>, est édité par :
       </p>
       <ul>
         <li>

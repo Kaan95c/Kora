@@ -10,7 +10,7 @@
  */
 
 const ALLOWED_ORIGINS = [
-  "https://app.kora-app.fr",
+  "https://kora-app.fr",
   "http://localhost:3000",
 ];
 

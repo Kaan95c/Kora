@@ -16,7 +16,7 @@ import { createClient } from "@supabase/supabase-js";
 const ADMIN_EMAIL = "kaantekten958@gmail.com";
 const ADMIN_NAME = "Kaan Tekten";
 const COMPANY_NAME = "Kora Studio";
-const LOGIN_URL = "https://app.kora-app.fr/login";
+const LOGIN_URL = "https://kora-app.fr/login";
 
 const prisma = new PrismaClient();
 
