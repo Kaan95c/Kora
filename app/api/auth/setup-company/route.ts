@@ -19,11 +19,27 @@ export const POST = withApi(async (request: Request) => {
     await request.json()
   );
 
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  // Garde-fou env : distingue « variable absente » (MISSING_ENV) de « présente
+  // mais rejetée par Supabase » (ADMIN_LOOKUP_FAILED plus bas).
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) {
+    logger.error("setup_company_missing_env", {
+      hasUrl: !!supabaseUrl,
+      hasServiceKey: !!serviceKey,
+    });
+    return NextResponse.json(
+      {
+        error: "Configuration serveur incomplète (variables d'environnement).",
+        code: "MISSING_ENV",
+      },
+      { status: 500 }
+    );
+  }
+
+  const admin = createAdminClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   // 1. Valider que le user existe bien côté Supabase et correspond à l'email.
   //    NB : cette route ne dépend PAS de la session/cookies — elle valide le
