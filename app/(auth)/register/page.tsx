@@ -125,21 +125,27 @@ export default function RegisterPage() {
       return;
     }
 
-    // Crée la Company + User en base (et auto-confirme l'email).
+    // 1. Établit la session (cookies) AVANT setup-company : c'est la session
+    //    validée côté serveur qui identifie l'utilisateur (plus de userId du body).
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Crée la Company + User en base (identité dérivée de la session serveur).
     const setupRes = await fetch("/api/auth/setup-company", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: data.user.id,
-        fullName,
-        studioName,
-        email,
-      }),
+      body: JSON.stringify({ fullName, studioName }),
     });
 
     if (!setupRes.ok) {
-      // Remonte la raison précise renvoyée par le serveur (rate-limit, validation,
-      // service_role…) en plus du message générique → diagnostic facilité.
+      // Remonte la raison précise renvoyée par le serveur → diagnostic facilité.
       let detail = "";
       try {
         const b = await setupRes.json();
@@ -151,17 +157,6 @@ export default function RegisterPage() {
         detail = "Trop de tentatives, patiente une minute puis réessaie.";
       }
       setError(detail ? `${t("setupFailed")} (${detail})` : t("setupFailed"));
-      setLoading(false);
-      return;
-    }
-
-    // Ouvre la session (au cas où signUp n'en a pas créé une).
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (signInError) {
-      setError(signInError.message);
       setLoading(false);
       return;
     }

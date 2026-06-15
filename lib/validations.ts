@@ -167,8 +167,9 @@ export const paymentIntentSchema = z.object({
   documentId: z.string().trim().min(1, "documentId est requis."),
 });
 export const setupCompanySchema = z.object({
-  userId: z.string().trim().min(1),
-  email: z.string().trim().email("Email invalide.").max(200),
+  // L'identité (supabaseId + email) vient de la session validée serveur, pas du
+  // body → on ne valide ici que les infos saisies dans le formulaire. Les clés
+  // `userId`/`email` éventuellement encore envoyées sont ignorées (Zod les retire).
   studioName: z.string().trim().min(1, "Le nom du studio est requis.").max(150),
   fullName: z.string().trim().max(120).nullish(),
 });

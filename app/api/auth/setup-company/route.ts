@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 import { withApi } from "@/lib/api-handler";
 import { setupCompanySchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
@@ -9,86 +9,49 @@ import { logger } from "@/lib/logger";
 export const dynamic = "force-dynamic";
 
 /**
- * Crée la Company + le User en base juste après l'inscription Supabase.
- * Sécurité : on valide le userId reçu via l'API admin (service_role) avant
- * de créer quoi que ce soit, et on auto-confirme l'email pour ouvrir la
- * session immédiatement (flux trial). Idempotent.
+ * Crée la Company + le User en base juste après l'inscription.
+ *
+ * Sécurité : l'identité (supabaseId + email) est dérivée de la **session validée
+ * côté serveur** — `supabase.auth.getUser()` re-valide le JWT auprès de Supabase
+ * (méthode sûre, pas `getSession()` qui ne fait que lire le cookie). On ne fait
+ * donc **pas** confiance à un `userId` fourni par le client, et on ne dépend
+ * **plus** de la clé `service_role` (plus d'API admin ici). Idempotent.
+ *
+ * Prérequis : une session doit exister au moment de l'appel → le formulaire
+ * d'inscription établit la session (signIn) avant d'appeler cette route. Cela
+ * suppose la **confirmation d'email désactivée** côté Supabase (sinon le signIn
+ * échoue tant que l'email n'est pas confirmé).
  */
 export const POST = withApi(async (request: Request) => {
-  const { userId, fullName, studioName, email } = setupCompanySchema.parse(
+  const { studioName, fullName } = setupCompanySchema.parse(
     await request.json()
   );
 
-  // Garde-fou env : distingue « variable absente » (MISSING_ENV) de « présente
-  // mais rejetée par Supabase » (ADMIN_LOOKUP_FAILED plus bas).
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) {
-    logger.error("setup_company_missing_env", {
-      hasUrl: !!supabaseUrl,
-      hasServiceKey: !!serviceKey,
-    });
+  // Source de vérité = session validée serveur (cookies).
+  const supabase = createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
     return NextResponse.json(
-      {
-        error: "Configuration serveur incomplète (variables d'environnement).",
-        code: "MISSING_ENV",
-      },
-      { status: 500 }
+      { error: "Session requise. Reconnecte-toi puis réessaie.", code: "NO_SESSION" },
+      { status: 401 }
     );
   }
 
-  const admin = createAdminClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  // 1. Valider que le user existe bien côté Supabase et correspond à l'email.
-  //    NB : cette route ne dépend PAS de la session/cookies — elle valide le
-  //    `userId` (issu de signUp) via l'API admin (service_role). Les 3 branches
-  //    sont distinctes pour un diagnostic immédiat.
-  const { data: userData, error: getErr } =
-    await admin.auth.admin.getUserById(userId);
-
-  if (getErr) {
-    // Échec de l'appel admin → quasi toujours une SUPABASE_SERVICE_ROLE_KEY
-    // absente/incorrecte, ou d'un projet ≠ NEXT_PUBLIC_SUPABASE_URL.
-    logger.error("setup_company_admin_lookup_failed", {
-      userId,
-      error: getErr.message,
-    });
+  const supabaseId = user.id;
+  const email = user.email;
+  if (!email) {
     return NextResponse.json(
-      {
-        error: "Service d'authentification indisponible (clé service_role ?).",
-        code: "ADMIN_LOOKUP_FAILED",
-      },
-      { status: 502 }
-    );
-  }
-  if (!userData?.user) {
-    logger.warn("setup_company_user_not_found", { userId });
-    return NextResponse.json(
-      { error: "Utilisateur introuvable.", code: "USER_NOT_FOUND" },
-      { status: 400 }
-    );
-  }
-  // Comparaison insensible à la casse (Supabase normalise l'email en minuscules).
-  const supabaseEmail = userData.user.email?.trim().toLowerCase() ?? "";
-  if (supabaseEmail !== email.trim().toLowerCase()) {
-    logger.warn("setup_company_email_mismatch", { userId });
-    return NextResponse.json(
-      { error: "Email incohérent.", code: "EMAIL_MISMATCH" },
+      { error: "Email manquant sur la session.", code: "NO_EMAIL" },
       { status: 400 }
     );
   }
 
-  // 2. Auto-confirmer l'email pour permettre le login immédiat.
-  if (!userData.user.email_confirmed_at) {
-    await admin.auth.admin.updateUserById(userId, { email_confirm: true });
-  }
-
-  // 3. Idempotence : si déjà initialisé, renvoyer l'existant.
-  const existing = await prisma.user.findUnique({
-    where: { supabaseId: userId },
-  });
+  // Idempotence : déjà initialisé pour ce supabaseId → renvoie l'existant.
+  const existing = await prisma.user.findUnique({ where: { supabaseId } });
   if (existing) {
     return NextResponse.json({
       companyId: existing.companyId,
@@ -96,7 +59,16 @@ export const POST = withApi(async (request: Request) => {
     });
   }
 
-  // 4. Créer Company + User + lien owner dans une transaction.
+  // Garde-fou : email déjà rattaché à un autre compte (User.email @unique).
+  const byEmail = await prisma.user.findUnique({ where: { email } });
+  if (byEmail) {
+    return NextResponse.json(
+      { error: "Cet email est déjà associé à un compte.", code: "EMAIL_TAKEN" },
+      { status: 409 }
+    );
+  }
+
+  // Crée Company + User + lien owner dans une transaction.
   const result = await prisma.$transaction(async (tx) => {
     const company = await tx.company.create({
       data: {
@@ -106,9 +78,9 @@ export const POST = withApi(async (request: Request) => {
       },
     });
 
-    const user = await tx.user.create({
+    const created = await tx.user.create({
       data: {
-        supabaseId: userId,
+        supabaseId,
         email,
         name: fullName ?? null,
         companyId: company.id,
@@ -117,10 +89,10 @@ export const POST = withApi(async (request: Request) => {
 
     await tx.company.update({
       where: { id: company.id },
-      data: { ownerId: user.id },
+      data: { ownerId: created.id },
     });
 
-    return { companyId: company.id, userId: user.id };
+    return { companyId: company.id, userId: created.id };
   });
 
   logger.info("account_created", {
