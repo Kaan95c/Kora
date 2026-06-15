@@ -6,6 +6,7 @@ import { getAuthedCompany } from "@/lib/auth";
 import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
 import { withApi } from "@/lib/api-handler";
 import { documentCreateSchema } from "@/lib/validations";
+import { triggerAutomations } from "@/lib/automations/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -135,6 +136,15 @@ export const POST = withApi(async (request: Request) => {
     },
     select: SELECT,
   });
+
+  // Automatisations : facture envoyée (uniquement à la création d'une INVOICE).
+  if (document.type === "INVOICE") {
+    await triggerAutomations(company.id, "INVOICE_SENT", {
+      documentId: document.id,
+      contactId,
+      projectId,
+    });
+  }
 
   return NextResponse.json(document, { status: 201 });
 });

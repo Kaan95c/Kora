@@ -7,6 +7,21 @@
 
 ---
 
+## 📅 Journal — Exécution réelle des automatisations (étape 31)
+
+**✅ Terminé — les automatisations s'exécutent vraiment**
+- **Moteur** `lib/automations/engine.ts` : `triggerAutomations(companyId, trigger, context)` (**best-effort, ne throw jamais** → ne casse jamais la requête déclenchante) → cherche les automations **actives** `{companyId, trigger}` (actions triées + `config`), incrémente `triggerCount`/`lastTriggeredAt`, puis pour chaque action : **delay 0 = inline (awaited)**, **delay > 0 = mise en file `AutomationQueue`** (`runAt = now + delayHours`). `runAction()` exporté (réutilisé par le cron). Chaque action en `try/catch` + `logger`.
+- **Contexte = IDs sérialisables uniquement** (`{ contactId?, projectId?, documentId?, appointmentId? }`) → les exécuteurs résolvent email/nom/studio depuis la DB (scoping `companyId`) à l'exécution (donnée fraîche, et stockable en JSON pour les actions différées).
+- **Exécuteurs** : `SEND_EMAIL` / `SEND_REMINDER` (Resend, `config.subject`/`body` sinon défauts ; skip si pas d'email), `CREATE_TASK` (`config.title`), `CHANGE_PROJECT_STATUS` (`config.status`, **écriture Prisma directe → pas de récursion** sur PROJECT_STATUS_CHANGED), `ADD_TAG` (`config.tag`, dédup), `SEND_DOCUMENT` = **no-op tracé** (hors périmètre).
+- **Migration additive** : modèle `AutomationQueue` (companyId/automationId/type/config/`context Json`/runAt/status PENDING|DONE|FAILED/attempts ; index `(status,runAt)`) via `db:push`.
+- **Triggers branchés** (awaited) : `POST /api/contacts` → **NEW_LEAD** (si statut `LEAD`) ; `POST /api/documents` → **INVOICE_SENT** (si `type === INVOICE`) ; webhook Stripe `payment_intent.succeeded` → **PAYMENT_RECEIVED** ; `PATCH /api/projects/[id]` → **PROJECT_STATUS_CHANGED** (lit l'**ancien statut** avant l'update, fire seulement si changé → pas de fire sur édition nom/notes ni drag sans effet) ; `POST /api/appointments` → **APPOINTMENT_BOOKED**.
+- **Cron** `app/api/cron/automations/route.ts` (`runtime nodejs`, GET) : auth `Authorization: Bearer ${CRON_SECRET}` (exigée si l'env est posée, sinon warn) ; (1) **PAYMENT_OVERDUE** = `Payment` PENDING avec `dueDate < now` → bascule **OVERDUE une fois** puis fire (idempotent, pas de spam quotidien) ; (2) traite la file `AutomationQueue` due (`runAt <= now`, batch 200) → `runAction` → `DONE`. `vercel.json` : cron `0 9 * * *` (09:00 **UTC** quotidien).
+- **⚠️ Conséquence (plan Hobby, D2)** : 1 cron/jour → les actions différées (`delayHours`) ont une **granularité ~journalière** (partent au prochain passage 9h UTC). Passer à `0 * * * *` (horaire) si upgrade Pro.
+- **⚠️ Action user** : définir **`CRON_SECRET`** dans les env Vercel (sinon le cron est non protégé ; Vercel injecte le header `Authorization` automatiquement quand l'env existe). `npm run build` + `tsc --noEmit` exit 0.
+- **Notes** : `CONTRACT_SIGNED` et `TAG_ADDED` (enum) **pas encore câblés** (hors demande) — moteur prêt. Anti-récursion garanti car les exécuteurs écrivent via Prisma, pas via les routes API.
+
+---
+
 ## 📅 Journal — Changement de domaine principal (étape 30)
 
 **✅ Terminé — `app.kora-app.fr` → `kora-app.fr`**
@@ -143,7 +158,9 @@
 | Étape 27 — **Page détail projet** (`/projects/[id]` : header éditable + infos client/description/budget + tâches CRUD + docs liés + notes autosave ; routes `GET/PATCH/DELETE` + `[id]/tasks` ; cartes & dashboard → détail ; migration `description`/`notes`) | ✅ Fait |
 | Étape 28 — **Onboarding wizard** (`/onboarding` hors `(app)`, 4 étapes : studio/client/projet/récap ; soumission groupée → studio+contact+project+complete ; migration `Company.onboardedAt` + backfill `db:mark-onboarded` ; redirections register/OAuth + `OnboardingGate` ; i18n FR/EN) | ✅ Fait |
 | Étape 29 — **Perf navigation** (cache client SWR `useResourceCache` sur Dashboard/Contacts/Projects + warm-start AuthProvider ; `loading.tsx` ; Recharts en `dynamic` → Dashboard 358→255 kB, Finance 293→187 kB) | ✅ Fait |
-| Étapes suivantes | ⏳ Relances auto (automations + cron), Inbox master/détail mobile, i18n Settings studio/branding/billing, *(perf : supprimer le double getUser)* |
+| Étape 30 — **Domaine principal `kora-app.fr`** (remplace `app.kora-app.fr` dans le code ; CORS double domaine en transition) | ✅ Fait |
+| Étape 31 — **Exécution réelle des automatisations** (moteur `lib/automations/engine.ts` ; triggers NEW_LEAD/INVOICE_SENT/PAYMENT_RECEIVED/PROJECT_STATUS_CHANGED/APPOINTMENT_BOOKED branchés ; actions email/rappel/tâche/statut/tag ; délais via `AutomationQueue` + cron `0 9 * * *` ; PAYMENT_OVERDUE en cron) | ✅ Fait — ⚠️ user : poser `CRON_SECRET` (Vercel) |
+| Étapes suivantes | ⏳ Inbox master/détail mobile, i18n Settings studio/branding/billing, *(perf : supprimer le double getUser ; automations : éditer la config des actions dans l'UI, câbler CONTRACT_SIGNED/TAG_ADDED, granularité cron horaire si Pro)* |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
 **Les 9 pages sont complètes et branchées aux vraies données — plus aucun placeholder.** 🎉
@@ -252,6 +269,7 @@
 | `/api/auth/setup-company` | POST | service_role | — |
 | `/api/auth/callback` (`/auth/callback`) | GET | — (public) | — |
 | `/api/onboarding/complete` | POST (pose `Company.onboardedAt`) | ✅ 401 | owner |
+| `/api/cron/automations` | GET (overdue + file différée) | `Bearer CRON_SECRET` | toutes companies |
 | `/api/dashboard/metrics` | GET | ✅ 401 | owner |
 | `/api/dashboard/revenue-chart` | GET | ✅ 401 | owner |
 | `/api/dashboard/projects` | GET | ✅ 401 | owner |
@@ -453,6 +471,7 @@ npm run db:generate  # régénérer le client Prisma
 - 🔌 **Stripe en local** : lancer `stripe listen --forward-to localhost:3000/api/webhooks/stripe` (terminal séparé) — c'est lui qui relaie les events → sans ça, le Document ne passe pas PAID. Carte test `4242 4242 4242 4242` **uniquement en mode test (local)** ; ⚠️ **en prod = LIVE**, vraies CB seulement.
 - 🗂️ **Supabase Storage** : bucket public **`logos`** (créé via `npm run ensure:bucket`, ou à la volée par `/api/settings/logo`) — utilisé par l'upload de logo (Branding).
 - 🔑 **`CLIENT_PORTAL_SECRET`** (étape 15, **optionnel**) : secret HMAC des liens du portail client. Non défini → repli sur `SUPABASE_SERVICE_ROLE_KEY` (fonctionne tel quel en dev). **En prod : poser une valeur dédiée** — sinon roter la service_role key casserait tous les liens portail déjà partagés.
+- ⏰ **`CRON_SECRET`** (étape 31, **prod Vercel**) : protège `GET /api/cron/automations`. Quand l'env est défini, Vercel ajoute automatiquement `Authorization: Bearer ${CRON_SECRET}` aux appels cron, et la route exige ce header (401 sinon). Non défini → route non protégée (warn loggé). **À poser dans les env Vercel.**
 - 🛡️ **Sécurité (étape 25) — ✅ TOUT RENSEIGNÉ (local + Vercel)** :
   - ✅ **Upstash (rate limiting)** : `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
   - ✅ **Sentry (monitoring)** : `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`.

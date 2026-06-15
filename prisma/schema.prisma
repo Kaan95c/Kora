@@ -351,6 +351,25 @@ model AutomationAction {
   @@index([automationId])
 }
 
+// File des actions d'automatisation différées (delayHours > 0). Balayée par le
+// cron (app/api/cron/automations). Le `context` est sérialisé en JSON (IDs only)
+// → résolu vers la donnée fraîche au moment de l'exécution.
+model AutomationQueue {
+  id           String     @id @default(cuid())
+  companyId    String
+  automationId String
+  type         ActionType
+  config       Json       @default("{}")
+  context      Json       @default("{}")
+  runAt        DateTime
+  status       String     @default("PENDING") // PENDING | DONE | FAILED
+  attempts     Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  @@index([status, runAt])
+  @@index([companyId])
+}
+
 model LineItem {
   id          String   @id @default(cuid())
   name        String

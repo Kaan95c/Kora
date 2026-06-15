@@ -6,6 +6,7 @@ import { getAuthedCompany } from "@/lib/auth";
 import { withApi } from "@/lib/api-handler";
 import { appointmentCreateSchema } from "@/lib/validations";
 import { sanitizeNullable } from "@/lib/sanitize";
+import { triggerAutomations } from "@/lib/automations/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -110,6 +111,12 @@ export const POST = withApi(async (request: Request) => {
       sessionTypeId: data.sessionTypeId || null,
     },
     select: SELECT,
+  });
+
+  // Automatisations : rendez-vous réservé.
+  await triggerAutomations(company.id, "APPOINTMENT_BOOKED", {
+    appointmentId: appointment.id,
+    contactId: appointment.contactId,
   });
 
   return NextResponse.json(appointment, { status: 201 });

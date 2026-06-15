@@ -6,6 +6,7 @@ import { getAuthedCompany } from "@/lib/auth";
 import { withApi } from "@/lib/api-handler";
 import { projectUpdateSchema } from "@/lib/validations";
 import { sanitizeNullable } from "@/lib/sanitize";
+import { triggerAutomations } from "@/lib/automations/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +117,18 @@ export const PATCH = withApi(
       }
     }
 
+    // Trigger PROJECT_STATUS_CHANGED : on lit le statut courant avant l'update
+    // (uniquement si un nouveau statut est fourni) pour ne déclencher qu'en cas
+    // de réel changement (pas sur une édition de nom/notes ni un drag sans effet).
+    let previousStatus: string | null = null;
+    if (body.status !== undefined) {
+      const before = await prisma.project.findFirst({
+        where: { id: params.id, companyId: company.id },
+        select: { status: true },
+      });
+      previousStatus = before?.status ?? null;
+    }
+
     // updateMany scopé par companyId → empêche de modifier un projet d'une autre company.
     const updated = await prisma.project.updateMany({
       where: { id: params.id, companyId: company.id },
@@ -124,6 +137,16 @@ export const PATCH = withApi(
 
     if (updated.count === 0) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    if (
+      body.status !== undefined &&
+      previousStatus !== null &&
+      body.status !== previousStatus
+    ) {
+      await triggerAutomations(company.id, "PROJECT_STATUS_CHANGED", {
+        projectId: params.id,
+      });
     }
 
     return NextResponse.json({ id: params.id, ok: true });

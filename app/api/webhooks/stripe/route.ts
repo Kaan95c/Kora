@@ -7,6 +7,7 @@ import { getStripe } from "@/lib/stripe";
 import { planFromPriceId } from "@/lib/billing-server";
 import { sendEmail } from "@/lib/email";
 import { PaymentReceiptEmail } from "@/components/emails/PaymentReceiptEmail";
+import { triggerAutomations } from "@/lib/automations/engine";
 import { withApi } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
@@ -124,10 +125,21 @@ export const POST = withApi(async (request: Request) => {
         select: {
           number: true,
           total: true,
+          contactId: true,
+          projectId: true,
           contact: { select: { email: true, firstName: true } },
           company: { select: { name: true } },
         },
       });
+
+      // Automatisations : paiement reçu (scopé par la company du metadata).
+      if (companyId) {
+        await triggerAutomations(companyId, "PAYMENT_RECEIVED", {
+          documentId,
+          contactId: doc?.contactId ?? null,
+          projectId: doc?.projectId ?? null,
+        });
+      }
 
       if (doc?.contact?.email) {
         const origin = new URL(request.url).origin;

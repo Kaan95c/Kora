@@ -7,6 +7,7 @@ import { checkLimit, planLimitErrorBody } from "@/lib/plan-limits";
 import { withApi } from "@/lib/api-handler";
 import { contactCreateSchema } from "@/lib/validations";
 import { sanitizeNullable } from "@/lib/sanitize";
+import { triggerAutomations } from "@/lib/automations/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,11 @@ export const POST = withApi(async (request: Request) => {
     },
     select: CONTACT_SELECT,
   });
+
+  // Automatisations : nouveau lead (seulement si le contact créé est LEAD).
+  if (contact.status === "LEAD") {
+    await triggerAutomations(company.id, "NEW_LEAD", { contactId: contact.id });
+  }
 
   return NextResponse.json(contact, { status: 201 });
 });
