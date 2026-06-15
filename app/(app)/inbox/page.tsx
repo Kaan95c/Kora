@@ -17,6 +17,7 @@ import {
   Paperclip,
   Send,
   X,
+  ArrowLeft,
   ArrowRight,
 } from "lucide-react";
 
@@ -443,8 +444,14 @@ export default function InboxPage() {
 
   return (
     <div className="flex h-[calc(100vh-8.5rem)] flex-col overflow-hidden rounded-2xl border border-[#c4c8be]/50 bg-white shadow-card md:flex-row">
-      {/* ───────── Colonne gauche ───────── */}
-      <div className="flex w-full shrink-0 flex-col border-b border-[#c4c8be]/40 max-md:h-[45%] md:w-[320px] md:border-b-0 md:border-r">
+      {/* ───────── Colonne gauche (liste) ─────────
+          Mobile : plein écran quand aucune conversation sélectionnée,
+          masquée dès qu'on en ouvre une. Desktop : colonne fixe 320px. */}
+      <div
+        className={`${
+          selectedId ? "hidden md:flex" : "flex"
+        } w-full flex-1 flex-col md:w-[320px] md:flex-none md:shrink-0 md:border-r md:border-[#c4c8be]/40`}
+      >
         <div className="flex items-center justify-between px-4 pb-3 pt-4">
           <h1 className="font-manrope text-xl font-semibold text-[#1b1c1a]">
             {t("title")}
@@ -570,8 +577,14 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* ───────── Colonne droite ───────── */}
-      <div className="flex min-w-0 flex-1 flex-col bg-[#fbf9f5]">
+      {/* ───────── Colonne droite (conversation) ─────────
+          Mobile : masquée tant qu'aucune sélection, plein écran sinon.
+          Desktop : toujours visible (état vide ou conversation). */}
+      <div
+        className={`${
+          selectedId ? "flex" : "hidden md:flex"
+        } min-w-0 flex-1 flex-col bg-[#fbf9f5]`}
+      >
         {!selectedId ? (
           <div className="flex flex-1 flex-col items-center justify-center">
             <MessageSquare
@@ -588,8 +601,17 @@ export default function InboxPage() {
         ) : (
           <>
             {/* Header conversation */}
-            <div className="flex items-center justify-between border-b border-[#c4c8be]/30 px-6 py-4">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between border-b border-[#c4c8be]/30 px-4 py-4 md:px-6">
+              <div className="flex min-w-0 items-center gap-2 md:gap-3">
+                {/* Retour à la liste (mobile uniquement) */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(null)}
+                  aria-label={t("back")}
+                  className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#444841] transition-colors hover:bg-[#efeeea] md:hidden"
+                >
+                  <ArrowLeft className="h-5 w-5" strokeWidth={2} />
+                </button>
                 {detail?.contact && (
                   <Avatar
                     firstName={detail.contact.firstName}

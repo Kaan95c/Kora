@@ -7,6 +7,20 @@
 
 ---
 
+## 📅 Journal — Inbox mobile + correctifs prod auth (étape 32)
+
+**✅ Inbox master/détail mobile (étape 32)**
+- `< md` : on affiche **soit** la liste **soit** la conversation (plein écran), piloté par `selectedId` (déjà existant). Classes : liste `${selectedId ? "hidden md:flex" : "flex"}` (+ `flex-1` mobile / `md:w-[320px] md:flex-none` desktop) ; conversation `${selectedId ? "flex" : "hidden md:flex"}`. Suppression de l'empilement `max-md:h-[45%]`.
+- Bouton **« ← Retour »** (`ArrowLeft`, `md:hidden`) dans l'en-tête conversation → `setSelectedId(null)` (revient à la liste). Titre = nom du contact (déjà dans l'en-tête). i18n `inbox.back` (FR/EN).
+- **Desktop ≥ md inchangé** (2 colonnes côte à côte).
+
+**✅ Correctifs prod auth (cette session, déjà en prod)**
+- **Inscription** : `setup-company` réécrit — identité dérivée de la **session validée serveur** (`supabase.auth.getUser()`), **plus de `userId` du body ni de dépendance service_role** ; le formulaire fait `signIn` **avant** setup-company. ⚠️ Suppose **« Confirm email » OFF** côté Supabase (fait par le user). Avant ça : 429 (rate-limit `/api/auth/me` trop strict → corrigé) puis « Invalid user » (clé service_role d'un projet ≠ → contourné par l'approche session).
+- **Google OAuth → landing** : `/auth/callback` réécrit pour **poser les cookies de session explicitement sur la réponse de redirect** (bug : `cookies()` next/headers non attachés au `NextResponse.redirect`) + base via `x-forwarded-host` ; filet `app/page.tsx` (un `?code` sur `/` est transmis au callback). Config Supabase Redirect URLs + Google Cloud vérifiée côté user.
+- ⚠️ **Déploiement Vercel** : auto-deploy GitHub capricieux cette session → plusieurs **commits vides** pour forcer. Si ça récidive : vérifier l'intégration Git Vercel / le webhook GitHub.
+
+---
+
 ## 📅 Journal — Exécution réelle des automatisations (étape 31)
 
 **✅ Terminé — les automatisations s'exécutent vraiment**
@@ -160,7 +174,8 @@
 | Étape 29 — **Perf navigation** (cache client SWR `useResourceCache` sur Dashboard/Contacts/Projects + warm-start AuthProvider ; `loading.tsx` ; Recharts en `dynamic` → Dashboard 358→255 kB, Finance 293→187 kB) | ✅ Fait |
 | Étape 30 — **Domaine principal `kora-app.fr`** (remplace `app.kora-app.fr` dans le code ; CORS double domaine en transition) | ✅ Fait |
 | Étape 31 — **Exécution réelle des automatisations** (moteur `lib/automations/engine.ts` ; triggers NEW_LEAD/INVOICE_SENT/PAYMENT_RECEIVED/PROJECT_STATUS_CHANGED/APPOINTMENT_BOOKED branchés ; actions email/rappel/tâche/statut/tag ; délais via `AutomationQueue` + cron `0 9 * * *` ; PAYMENT_OVERDUE en cron) | ✅ Fait — ⚠️ user : poser `CRON_SECRET` (Vercel) |
-| Étapes suivantes | ⏳ Inbox master/détail mobile, i18n Settings studio/branding/billing, *(perf : supprimer le double getUser ; automations : éditer la config des actions dans l'UI, câbler CONTRACT_SIGNED/TAG_ADDED, granularité cron horaire si Pro)* |
+| Étape 32 — **Inbox master/détail mobile** (`< md` : liste plein écran ↔ conversation plein écran + bouton « ← Retour » ; bascule via `selectedId` ; desktop 2 colonnes inchangé) | ✅ Fait |
+| Étapes suivantes | ⏳ i18n Settings studio/branding/billing, *(perf : supprimer le double getUser ; automations : éditer la config des actions dans l'UI, câbler CONTRACT_SIGNED/TAG_ADDED ; OAuth/setup-company : régressions prod réglées — voir journal)* |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
 **Les 9 pages sont complètes et branchées aux vraies données — plus aucun placeholder.** 🎉
