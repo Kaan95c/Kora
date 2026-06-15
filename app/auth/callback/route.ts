@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 
@@ -9,31 +9,60 @@ export const dynamic = "force-dynamic";
 /**
  * Callback OAuth (Google) : échange le code contre une session, puis onboarding.
  *
- * Les comptes Google ne passent pas par le formulaire d'inscription
- * (`/api/auth/setup-company`) : si c'est le premier login (aucun `User` en base
- * rattaché à ce `supabaseId`), on crée ici la Company + le User (même logique
- * que setup-company), avec un nom de studio dérivé du profil Google.
+ * ⚠️ Cookies : on écrit la session dans un `cookieJar` puis on pose ces cookies
+ * **explicitement sur la réponse de redirection** (et pas seulement via
+ * `cookies()` de next/headers) — sinon les `Set-Cookie` ne sont pas garantis
+ * d'être attachés au `NextResponse.redirect()`, et le navigateur arrive sur la
+ * destination SANS session (→ retombe sur la landing / login). C'est le pattern
+ * robuste recommandé par Supabase pour les Route Handlers qui redirigent.
+ *
+ * Redirection : on préfère le host public (`x-forwarded-host`, derrière le proxy
+ * Vercel) à l'`origin` interne du déploiement.
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
-  // Base de redirection robuste en prod (derrière le proxy Vercel) : on préfère
-  // le host public (`x-forwarded-host`) à l'origin de `request.url` qui peut
-  // pointer vers l'URL interne du déploiement. Pattern recommandé par Supabase.
   const isLocal = process.env.NODE_ENV === "development";
   const forwardedHost = request.headers.get("x-forwarded-host");
   const base = isLocal || !forwardedHost ? origin : `https://${forwardedHost}`;
 
-  if (!code) {
-    return NextResponse.redirect(`${base}/login?error=oauth`);
+  const cookieJar: { name: string; value: string; options: CookieOptions }[] =
+    [];
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach((c) => cookieJar.push(c));
+        },
+      },
+    }
+  );
+
+  // Redirige en posant les cookies de session collectés sur LA réponse renvoyée.
+  function redirectTo(path: string) {
+    const res = NextResponse.redirect(`${base}${path}`);
+    for (const { name, value, options } of cookieJar) {
+      res.cookies.set({ name, value, ...options });
+    }
+    return res;
   }
 
-  const supabase = createClient();
+  if (!code) {
+    return redirectTo("/login?error=oauth");
+  }
+
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(`${base}/login?error=oauth`);
+    logger.warn("oauth_exchange_failed", { error: error.message });
+    return redirectTo("/login?error=oauth");
   }
 
   // Un nouveau compte (1er login Google) part vers le wizard d'onboarding ;
@@ -100,5 +129,5 @@ export async function GET(request: Request) {
 
   // Nouveau compte → wizard. Sinon (compte existant / reset password) → next.
   const target = createdNewAccount ? "/onboarding" : next;
-  return NextResponse.redirect(`${base}${target}`);
+  return redirectTo(target);
 }
