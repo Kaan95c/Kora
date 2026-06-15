@@ -14,6 +14,7 @@
 - **Serveur** : `AUTOMATION_SELECT += config` (pour le prefill) ; `buildActionsCreate` construit un `config` **propre par type** (clés connues, `trim`, plafonné, **sanitizé** via `lib/sanitize`, statut validé contre l'enum).
 - **Moteur** (`engine.ts`) : `resolveVars(companyId, context)` (résout `contact_name`/`studio_name`/`project_name`/`appointment_date` depuis les IDs) + `renderTemplate` (`{{ clé }}`, espaces tolérés, var absente → vide) ; appliqué au **sujet + corps** (email/rappel) et au **titre** (tâche). Défauts génériques conservés si la config est vide.
 - **i18n** : 8 clés `config*` (FR/EN). ⚠️ **Gotcha ICU** : les placeholders contenant `{{…}}` sont **hardcodés en JSX** (pas via `t()`, sinon `{…}` est interprété comme un placeholder ICU). **Pas de migration** (`config Json` existait). `npm run build` + `tsc` exit 0.
+- **✅ Validé en prod (2026-06-15)** : e-mail d'automatisation reçu avec `{{studio_name}}` et `{{contact_name}}` correctement remplacés par les vraies valeurs (nom du studio + nom du contact).
 
 ---
 
@@ -185,7 +186,7 @@
 | Étape 30 — **Domaine principal `kora-app.fr`** (remplace `app.kora-app.fr` dans le code ; CORS double domaine en transition) | ✅ Fait |
 | Étape 31 — **Exécution réelle des automatisations** (moteur `lib/automations/engine.ts` ; triggers NEW_LEAD/INVOICE_SENT/PAYMENT_RECEIVED/PROJECT_STATUS_CHANGED/APPOINTMENT_BOOKED branchés ; actions email/rappel/tâche/statut/tag ; délais via `AutomationQueue` + cron `0 9 * * *` ; PAYMENT_OVERDUE en cron) | ✅ Fait — ⚠️ user : poser `CRON_SECRET` (Vercel) |
 | Étape 32 — **Inbox master/détail mobile** (`< md` : liste plein écran ↔ conversation plein écran + bouton « ← Retour » ; bascule via `selectedId` ; desktop 2 colonnes inchangé) | ✅ Fait |
-| Étape 33 — **Config des actions Automations + variables dynamiques** (drawer : champs par type — email sujet/corps, tâche titre, tag, statut select ; `config` persisté/pré-rempli ; moteur substitue `{{contact_name}}`/`{{studio_name}}`/`{{project_name}}`/`{{appointment_date}}` ; sujet requis email/rappel) | ✅ Fait |
+| Étape 33 — **Config des actions Automations + variables dynamiques** (drawer : champs par type — email sujet/corps, tâche titre, tag, statut select ; `config` persisté/pré-rempli ; moteur substitue `{{contact_name}}`/`{{studio_name}}`/`{{project_name}}`/`{{appointment_date}}` ; sujet requis email/rappel) | ✅ Fait — **validé en prod** |
 | Étapes suivantes | ⏳ i18n Settings studio/branding/billing, *(perf : supprimer le double getUser ; automations : câbler CONTRACT_SIGNED/TAG_ADDED)* |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
