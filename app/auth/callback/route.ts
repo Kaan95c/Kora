@@ -19,14 +19,21 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
+  // Base de redirection robuste en prod (derrière le proxy Vercel) : on préfère
+  // le host public (`x-forwarded-host`) à l'origin de `request.url` qui peut
+  // pointer vers l'URL interne du déploiement. Pattern recommandé par Supabase.
+  const isLocal = process.env.NODE_ENV === "development";
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const base = isLocal || !forwardedHost ? origin : `https://${forwardedHost}`;
+
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=oauth`);
+    return NextResponse.redirect(`${base}/login?error=oauth`);
   }
 
   const supabase = createClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(`${origin}/login?error=oauth`);
+    return NextResponse.redirect(`${base}/login?error=oauth`);
   }
 
   // Un nouveau compte (1er login Google) part vers le wizard d'onboarding ;
@@ -93,5 +100,5 @@ export async function GET(request: Request) {
 
   // Nouveau compte → wizard. Sinon (compte existant / reset password) → next.
   const target = createdNewAccount ? "/onboarding" : next;
-  return NextResponse.redirect(`${origin}${target}`);
+  return NextResponse.redirect(`${base}${target}`);
 }

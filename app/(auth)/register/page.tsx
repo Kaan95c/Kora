@@ -138,7 +138,19 @@ export default function RegisterPage() {
     });
 
     if (!setupRes.ok) {
-      setError(t("setupFailed"));
+      // Remonte la raison précise renvoyée par le serveur (rate-limit, validation,
+      // service_role…) en plus du message générique → diagnostic facilité.
+      let detail = "";
+      try {
+        const b = await setupRes.json();
+        detail = (b?.error as string) || (b?.code as string) || "";
+      } catch {
+        /* corps non-JSON */
+      }
+      if (setupRes.status === 429) {
+        detail = "Trop de tentatives, patiente une minute puis réessaie.";
+      }
+      setError(detail ? `${t("setupFailed")} (${detail})` : t("setupFailed"));
       setLoading(false);
       return;
     }

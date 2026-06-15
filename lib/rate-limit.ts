@@ -27,8 +27,12 @@ function make(limit: number, prefix: string): Ratelimit | null {
 }
 
 // Limites par catégorie (par minute, par IP).
+// NB : la vraie protection brute-force du login vit chez Supabase (signIn/signUp
+// vont directement à supabase.co, PAS par nos routes). Nos `/api/auth/*` ne sont
+// que `me` (lecture) et `setup-company` (création de compte, idempotente) → un
+// bucket à 5/min était trop strict et provoquait des 429 en prod.
 const limiters = {
-  auth: make(5, "rl:auth"),
+  auth: make(20, "rl:auth"),
   search: make(20, "rl:search"),
   payments: make(10, "rl:payments"),
   general: make(60, "rl:general"),
@@ -38,6 +42,9 @@ export type RateScope = keyof typeof limiters;
 
 /** Associe un chemin `/api/*` à sa catégorie de limite. */
 export function scopeForPath(pathname: string): RateScope {
+  // `/api/auth/me` est une simple lecture appelée par l'AuthProvider à chaque
+  // chargement de page → bucket général (60/min), pas le bucket auth strict.
+  if (pathname.startsWith("/api/auth/me")) return "general";
   if (pathname.startsWith("/api/auth/")) return "auth";
   if (pathname.startsWith("/api/search")) return "search";
   if (pathname.startsWith("/api/payments/")) return "payments";
