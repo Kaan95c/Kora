@@ -26,10 +26,42 @@ export const POST = withApi(async (request: Request) => {
   );
 
   // 1. Valider que le user existe bien côté Supabase et correspond à l'email.
+  //    NB : cette route ne dépend PAS de la session/cookies — elle valide le
+  //    `userId` (issu de signUp) via l'API admin (service_role). Les 3 branches
+  //    sont distinctes pour un diagnostic immédiat.
   const { data: userData, error: getErr } =
     await admin.auth.admin.getUserById(userId);
-  if (getErr || !userData?.user || userData.user.email !== email) {
-    return NextResponse.json({ error: "Invalid user" }, { status: 400 });
+
+  if (getErr) {
+    // Échec de l'appel admin → quasi toujours une SUPABASE_SERVICE_ROLE_KEY
+    // absente/incorrecte, ou d'un projet ≠ NEXT_PUBLIC_SUPABASE_URL.
+    logger.error("setup_company_admin_lookup_failed", {
+      userId,
+      error: getErr.message,
+    });
+    return NextResponse.json(
+      {
+        error: "Service d'authentification indisponible (clé service_role ?).",
+        code: "ADMIN_LOOKUP_FAILED",
+      },
+      { status: 502 }
+    );
+  }
+  if (!userData?.user) {
+    logger.warn("setup_company_user_not_found", { userId });
+    return NextResponse.json(
+      { error: "Utilisateur introuvable.", code: "USER_NOT_FOUND" },
+      { status: 400 }
+    );
+  }
+  // Comparaison insensible à la casse (Supabase normalise l'email en minuscules).
+  const supabaseEmail = userData.user.email?.trim().toLowerCase() ?? "";
+  if (supabaseEmail !== email.trim().toLowerCase()) {
+    logger.warn("setup_company_email_mismatch", { userId });
+    return NextResponse.json(
+      { error: "Email incohérent.", code: "EMAIL_MISMATCH" },
+      { status: 400 }
+    );
   }
 
   // 2. Auto-confirmer l'email pour permettre le login immédiat.
