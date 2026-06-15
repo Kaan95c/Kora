@@ -29,7 +29,13 @@ import { useAuth } from "@/lib/hooks/useAuth";
 
 // ───────────────────────── Types ─────────────────────────
 
-type Action = { id: string; type: ActionType; order: number; delayHours: number };
+type Action = {
+  id: string;
+  type: ActionType;
+  order: number;
+  delayHours: number;
+  config?: Record<string, unknown>;
+};
 
 type Automation = {
   id: string;
@@ -49,7 +55,26 @@ type FormAction = {
   type: ActionType;
   delayValue: string;
   delayUnit: "hours" | "days";
+  config: Record<string, string>;
 };
+
+// Clés de config attendues par type d'action (pour prefill + élagage à l'envoi).
+const CONFIG_KEYS: Record<ActionType, string[]> = {
+  SEND_EMAIL: ["subject", "body"],
+  SEND_REMINDER: ["subject", "body"],
+  CREATE_TASK: ["title"],
+  ADD_TAG: ["tag"],
+  CHANGE_PROJECT_STATUS: ["status"],
+  SEND_DOCUMENT: [],
+};
+
+const PROJECT_STATUSES = [
+  "INQUIRY",
+  "FOLLOW_UP",
+  "BOOKING",
+  "ACTIVE",
+  "ARCHIVED",
+] as const;
 
 const uid = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
@@ -126,6 +151,7 @@ function AutomationDrawer({
 }) {
   const tr = useTranslations("automations");
   const tc = useTranslations("common");
+  const ts = useTranslations("status");
   const [trigger, setTrigger] = useState<AutomationTrigger | null>(null);
   const [actions, setActions] = useState<FormAction[]>([]);
   const [name, setName] = useState("");
@@ -144,11 +170,17 @@ function AutomationDrawer({
       setActions(
         editing.actions.map((a) => {
           const isDays = a.delayHours > 0 && a.delayHours % 24 === 0;
+          const raw = (a.config ?? {}) as Record<string, unknown>;
+          const config: Record<string, string> = {};
+          for (const k of CONFIG_KEYS[a.type]) {
+            if (typeof raw[k] === "string") config[k] = raw[k] as string;
+          }
           return {
             key: uid(),
             type: a.type,
             delayValue: String(isDays ? a.delayHours / 24 : a.delayHours),
             delayUnit: isDays ? "days" : "hours",
+            config,
           };
         })
       );
@@ -163,8 +195,21 @@ function AutomationDrawer({
   function addAction() {
     setActions((prev) => [
       ...prev,
-      { key: uid(), type: "SEND_EMAIL", delayValue: "0", delayUnit: "hours" },
+      {
+        key: uid(),
+        type: "SEND_EMAIL",
+        delayValue: "0",
+        delayUnit: "hours",
+        config: {},
+      },
     ]);
+  }
+  function updateConfig(key: string, field: string, value: string) {
+    setActions((prev) =>
+      prev.map((a) =>
+        a.key === key ? { ...a, config: { ...a.config, [field]: value } } : a
+      )
+    );
   }
   function removeAction(key: string) {
     setActions((prev) => prev.filter((a) => a.key !== key));
@@ -188,20 +233,124 @@ function AutomationDrawer({
     });
   }
 
+  // Champs de configuration spécifiques au type d'action.
+  // ⚠️ Les placeholders contiennent `{{…}}` → hardcodés (pas via t() : ICU
+  // interpréterait `{…}` comme un placeholder de message).
+  const cfgInput =
+    "font-inter w-full rounded-lg border border-[#c4c8be] bg-white px-2.5 py-2 text-[13px] text-[#1b1c1a] outline-none transition-colors placeholder:text-outline focus:border-[#52634c]";
+  const cfgLabel =
+    "font-inter mb-1 block text-[11px] font-semibold uppercase tracking-wide text-[#444841]";
+
+  function configFields(a: FormAction) {
+    if (a.type === "SEND_EMAIL" || a.type === "SEND_REMINDER") {
+      return (
+        <div className="mt-2.5 space-y-2 border-t border-[#c4c8be]/40 pt-2.5">
+          <div>
+            <label className={cfgLabel}>{tr("configSubjectLabel")}</label>
+            <input
+              value={a.config.subject ?? ""}
+              onChange={(e) => updateConfig(a.key, "subject", e.target.value)}
+              placeholder="Bienvenue chez {{studio_name}}"
+              className={cfgInput}
+            />
+          </div>
+          <div>
+            <label className={cfgLabel}>{tr("configBodyLabel")}</label>
+            <textarea
+              value={a.config.body ?? ""}
+              onChange={(e) => updateConfig(a.key, "body", e.target.value)}
+              rows={3}
+              placeholder="Bonjour {{contact_name}}, …"
+              className={`${cfgInput} resize-y`}
+            />
+          </div>
+          <p className="font-inter text-[11px] text-outline">
+            {tr("configVariables")}{" "}
+            <span className="font-medium text-[#52634c]">
+              {"{{contact_name}}, {{studio_name}}, {{project_name}}"}
+            </span>
+          </p>
+        </div>
+      );
+    }
+    if (a.type === "CREATE_TASK") {
+      return (
+        <div className="mt-2.5 border-t border-[#c4c8be]/40 pt-2.5">
+          <label className={cfgLabel}>{tr("configTaskTitleLabel")}</label>
+          <input
+            value={a.config.title ?? ""}
+            onChange={(e) => updateConfig(a.key, "title", e.target.value)}
+            placeholder="Suivre {{contact_name}}"
+            className={cfgInput}
+          />
+        </div>
+      );
+    }
+    if (a.type === "ADD_TAG") {
+      return (
+        <div className="mt-2.5 border-t border-[#c4c8be]/40 pt-2.5">
+          <label className={cfgLabel}>{tr("configTagLabel")}</label>
+          <input
+            value={a.config.tag ?? ""}
+            onChange={(e) => updateConfig(a.key, "tag", e.target.value)}
+            placeholder="lead-chaud"
+            className={cfgInput}
+          />
+        </div>
+      );
+    }
+    if (a.type === "CHANGE_PROJECT_STATUS") {
+      return (
+        <div className="mt-2.5 border-t border-[#c4c8be]/40 pt-2.5">
+          <label className={cfgLabel}>{tr("configStatusLabel")}</label>
+          <select
+            value={a.config.status ?? ""}
+            onChange={(e) => updateConfig(a.key, "status", e.target.value)}
+            className={cfgInput}
+          >
+            <option value="">{tr("configStatusPlaceholder")}</option>
+            {PROJECT_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {ts(`project.${s}`)}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+    return null;
+  }
+
   async function save() {
     if (!trigger) return setError(tr("pickTrigger"));
     if (!name.trim()) return setError(tr("nameRequired"));
+    // Sujet requis pour les actions Email / Rappel.
+    const missingSubject = actions.some(
+      (a) =>
+        (a.type === "SEND_EMAIL" || a.type === "SEND_REMINDER") &&
+        !(a.config.subject ?? "").trim()
+    );
+    if (missingSubject) return setError(tr("subjectRequired"));
     setSaving(true);
     setError(null);
     const payload = {
       name,
       description,
       trigger,
-      actions: actions.map((a) => ({
-        type: a.type,
-        delayHours:
-          (Number(a.delayValue) || 0) * (a.delayUnit === "days" ? 24 : 1),
-      })),
+      actions: actions.map((a) => {
+        // Élague la config aux clés pertinentes pour le type.
+        const config: Record<string, string> = {};
+        for (const k of CONFIG_KEYS[a.type]) {
+          const v = (a.config[k] ?? "").trim();
+          if (v) config[k] = v;
+        }
+        return {
+          type: a.type,
+          delayHours:
+            (Number(a.delayValue) || 0) * (a.delayUnit === "days" ? 24 : 1),
+          config,
+        };
+      }),
     };
     const res = await fetch(
       editing ? `/api/automations/${editing.id}` : "/api/automations",
@@ -312,8 +461,9 @@ function AutomationDrawer({
               {actions.map((a, i) => (
                 <div
                   key={a.key}
-                  className="flex items-center gap-2 rounded-xl border border-[#c4c8be]/60 bg-[#fbf9f5] p-2.5"
+                  className="rounded-xl border border-[#c4c8be]/60 bg-[#fbf9f5] p-2.5"
                 >
+                  <div className="flex items-center gap-2">
                   <div className="flex shrink-0 flex-col">
                     <button
                       type="button"
@@ -382,6 +532,8 @@ function AutomationDrawer({
                   >
                     <X className="h-4 w-4" strokeWidth={1.75} />
                   </button>
+                  </div>
+                  {configFields(a)}
                 </div>
               ))}
             </div>

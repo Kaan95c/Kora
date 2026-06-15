@@ -44,6 +44,60 @@ function cfgStr(config: unknown, key: string): string | undefined {
   return undefined;
 }
 
+// ───────────────────────── Variables dynamiques ─────────────────────────
+
+/**
+ * Résout les variables disponibles pour les templates, depuis le contexte
+ * (IDs) → données fraîches en DB. Variables : `contact_name`, `studio_name`,
+ * `project_name`, `appointment_date`. Absentes selon le trigger → non définies
+ * (rendues en chaîne vide par `renderTemplate`).
+ */
+async function resolveVars(
+  companyId: string,
+  context: AutomationContext
+): Promise<Record<string, string>> {
+  const vars: Record<string, string> = {};
+
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { name: true },
+  });
+  if (company?.name) vars.studio_name = company.name;
+
+  if (context.contactId) {
+    const c = await prisma.contact.findFirst({
+      where: { id: context.contactId, companyId },
+      select: { firstName: true, lastName: true },
+    });
+    if (c) vars.contact_name = `${c.firstName} ${c.lastName}`.trim();
+  }
+  if (context.projectId) {
+    const p = await prisma.project.findFirst({
+      where: { id: context.projectId, companyId },
+      select: { name: true },
+    });
+    if (p) vars.project_name = p.name;
+  }
+  if (context.appointmentId) {
+    const ap = await prisma.appointment.findFirst({
+      where: { id: context.appointmentId, companyId },
+      select: { startAt: true },
+    });
+    if (ap) {
+      vars.appointment_date = new Date(ap.startAt).toLocaleString("fr-FR", {
+        dateStyle: "long",
+        timeStyle: "short",
+      });
+    }
+  }
+  return vars;
+}
+
+/** Remplace `{{ clé }}` (espaces tolérés) ; variable absente → chaîne vide. */
+function renderTemplate(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => vars[key] ?? "");
+}
+
 // ───────────────────────── Déclenchement ─────────────────────────
 
 export async function triggerAutomations(
@@ -173,23 +227,25 @@ async function actSendEmail(
   });
   if (!contact?.email) return;
 
-  const company = await prisma.company.findUnique({
-    where: { id: companyId },
-    select: { name: true },
-  });
-  const studio = company?.name ?? "Kora";
-  const name = contact.firstName || "";
+  const vars = await resolveVars(companyId, context);
+  const studio = vars.studio_name || "Kora";
+  const name = vars.contact_name || contact.firstName || "";
 
-  const subject =
-    cfgStr(config, "subject") ??
-    (reminder ? `Petit rappel de ${studio}` : `Un message de ${studio}`);
-  const body =
-    cfgStr(config, "body") ??
-    `Bonjour ${name},\n\n${
-      reminder
-        ? "Ceci est un rappel automatique."
-        : "Merci, nous revenons vers vous très vite."
-    }\n\n— ${studio}`;
+  // Config personnalisée → substitution des variables ; sinon défaut générique.
+  const rawSubject = cfgStr(config, "subject");
+  const rawBody = cfgStr(config, "body");
+  const subject = rawSubject
+    ? renderTemplate(rawSubject, vars)
+    : reminder
+      ? `Petit rappel de ${studio}`
+      : `Un message de ${studio}`;
+  const body = rawBody
+    ? renderTemplate(rawBody, vars)
+    : `Bonjour ${name},\n\n${
+        reminder
+          ? "Ceci est un rappel automatique."
+          : "Merci, nous revenons vers vous très vite."
+      }\n\n— ${studio}`;
 
   await sendEmail({ to: contact.email, subject, text: body });
 }
@@ -199,7 +255,12 @@ async function actCreateTask(
   config: unknown,
   context: AutomationContext
 ): Promise<void> {
-  const title = cfgStr(config, "title") ?? "Tâche automatique";
+  const raw = cfgStr(config, "title") ?? "Tâche automatique";
+  // Substitue les variables si le titre en contient.
+  const title = /\{\{/.test(raw)
+    ? renderTemplate(raw, await resolveVars(companyId, context)).slice(0, 200) ||
+      "Tâche automatique"
+    : raw;
   await prisma.task.create({
     data: { companyId, title, projectId: context.projectId ?? null },
   });
