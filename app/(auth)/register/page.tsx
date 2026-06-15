@@ -154,7 +154,8 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // Nouveau compte → wizard de démarrage (évite d'arriver sur des pages vides).
+    router.push("/onboarding");
     router.refresh();
   }
 

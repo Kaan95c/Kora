@@ -29,6 +29,8 @@ export type Company = {
   subscriptionStatus?: string | null;
   currentPeriodEnd?: string | null;
   cancelAtPeriodEnd?: boolean;
+  // Onboarding : null = wizard de démarrage non terminé (compte neuf).
+  onboardedAt?: string | null;
 } | null;
 
 // Caps du plan (Infinity → null = illimité), calculés serveur dans /api/auth/me.

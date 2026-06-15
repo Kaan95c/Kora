@@ -29,6 +29,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=oauth`);
   }
 
+  // Un nouveau compte (1er login Google) part vers le wizard d'onboarding ;
+  // un compte existant (ou un reset de mot de passe via ?next=) garde `next`.
+  let createdNewAccount = false;
+
   // Onboarding du compte OAuth (best-effort : ne doit jamais casser le flux
   // d'auth — la session est déjà établie par l'échange ci-dessus).
   try {
@@ -77,6 +81,7 @@ export async function GET(request: Request) {
             });
           });
 
+          createdNewAccount = true;
           logger.info("account_created", { email, via: "oauth" });
         }
       }
@@ -86,5 +91,7 @@ export async function GET(request: Request) {
     // (dashboard vide) plutôt que de bloquer la connexion.
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  // Nouveau compte → wizard. Sinon (compte existant / reset password) → next.
+  const target = createdNewAccount ? "/onboarding" : next;
+  return NextResponse.redirect(`${origin}${target}`);
 }

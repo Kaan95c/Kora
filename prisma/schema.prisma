@@ -126,6 +126,9 @@ model Company {
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean   @default(false)
 
+  // Onboarding : null = wizard de démarrage pas encore terminé (compte neuf).
+  onboardedAt   DateTime?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

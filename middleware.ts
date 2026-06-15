@@ -7,6 +7,7 @@ import { checkRateLimit, scopeForPath } from "@/lib/rate-limit";
 // Routes (préfixes) qui exigent une session.
 const PROTECTED_PREFIXES = [
   "/dashboard",
+  "/onboarding",
   "/projects",
   "/contacts",
   "/documents",

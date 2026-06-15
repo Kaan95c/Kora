@@ -19,7 +19,8 @@
     "db:seed-automations": "dotenv -e .env.local -- tsx lib/seed-automations.ts",
     "db:seed-line-items": "dotenv -e .env.local -- tsx lib/seed-line-items.ts",
     "db:reset-prod": "dotenv -e .env.local -- tsx lib/reset-prod.ts",
-    "db:create-admin": "dotenv -e .env.local -- tsx lib/create-admin.ts"
+    "db:create-admin": "dotenv -e .env.local -- tsx lib/create-admin.ts",
+    "db:mark-onboarded": "dotenv -e .env.local -- tsx lib/mark-onboarded.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
