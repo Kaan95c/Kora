@@ -7,6 +7,18 @@
 
 ---
 
+## 📅 Journal — Rate-limit anti-bot landing (étape 35)
+
+**✅ Protection de la landing `/` contre les floods de bots**
+- **Contexte** : attaque bot ≈ **671K requêtes sur `/` en quelques minutes**. Objectif : couper les floods sans gêner les humains.
+- **`lib/rate-limit.ts`** : nouveau bucket `landing: make(200, "rl:landing")` → **200 req/min/IP** (sliding window Upstash). Très au-dessus de tout usage humain (personne ne recharge la home 200×/min).
+- **`middleware.ts`** : bloc `if (pathname === "/" && request.method === "GET")` → `checkRateLimit("landing", clientIp(request))` → **429 `Too Many Requests`** (+ `Retry-After`) si dépassé. **Placé AVANT `updateSession`** → un flood renvoie 429 sans déclencher le `getUser()` Supabase (protège aussi le backend). Extraction IP factorisée dans un helper **`clientIp(request)`** (réutilisé par le bloc `/api/*`).
+- **Fail-open** : sans env Upstash (dev) rien n'est bloqué ; en prod Upstash est configuré (Phase 0 faite) → actif.
+- **⚠️ Limite connue** : rate-limit **par IP** → un **botnet distribué** (milliers d'IP, ~1 req chacune) passe sous le seuil. Pour ce cas, la défense est en amont : **Vercel Firewall / Attack Challenge Mode** (gratuit sur Hobby, à activer pendant une attaque). Le rate-limit applicatif couvre le cas courant (peu d'IP, gros volume) = exactement le profil des 671K req.
+- `npx tsc --noEmit` + `npm run build` **exit 0**. *(commit `f24ea34`)*
+
+---
+
 ## 📅 Journal — Durcissement CSP : nonce + strict-dynamic (étape 34)
 
 **✅ Content-Security-Policy renforcée — `script-src` sans `unsafe-inline`**
@@ -204,6 +216,7 @@
 | Étape 32 — **Inbox master/détail mobile** (`< md` : liste plein écran ↔ conversation plein écran + bouton « ← Retour » ; bascule via `selectedId` ; desktop 2 colonnes inchangé) | ✅ Fait |
 | Étape 33 — **Config des actions Automations + variables dynamiques** (drawer : champs par type — email sujet/corps, tâche titre, tag, statut select ; `config` persisté/pré-rempli ; moteur substitue `{{contact_name}}`/`{{studio_name}}`/`{{project_name}}`/`{{appointment_date}}` ; sujet requis email/rappel) | ✅ Fait — **validé en prod** |
 | Étape 34 — **Durcissement CSP (nonce + strict-dynamic)** (`lib/csp.ts` + nonce par requête dans `middleware.ts` → retire `'unsafe-inline'` de `script-src`, corrige le −20 Observatory ; CSP statique retirée de `next.config.mjs` ; `style-src 'unsafe-inline'` gardé ; trade-off : rendu dynamique des pages publiques) | ✅ Code + build OK — ⏳ **smoke-test user** (console CSP + Observatory) |
+| Étape 35 — **Rate-limit anti-bot landing** (bucket Upstash `landing` 200 GET/min/IP sur `/` dans `middleware.ts`, avant `updateSession` ; helper `clientIp` ; suite au flood ~671K req sur `/`) | ✅ Fait — ⚠️ botnet distribué → activer Vercel Attack Challenge Mode |
 | Étapes suivantes | ⏳ i18n Settings studio/branding/billing, *(perf : supprimer le double getUser ; automations : câbler CONTRACT_SIGNED/TAG_ADDED)* |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
