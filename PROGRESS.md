@@ -7,6 +7,19 @@
 
 ---
 
+## 📅 Journal — Lockout progressif du login (étape 36)
+
+**✅ Anti brute-force sur `/login` — verrouillage progressif par IP + email**
+- **Paliers** : **5 échecs → 5 min · 10 → 30 min · 20 → 24 h**. Échecs comptés dans **Upstash Redis** par **IP ET par email** (verrouillé si l'un **OU** l'autre l'est), fenêtre d'accumulation **24 h**. **Fail-open** sans env Upstash (dev) — cohérent avec le reste de `lib/rate-limit.ts`.
+- **`lib/rate-limit.ts`** : 3 fonctions sur le client `redis` brut — `checkLoginLock` (lit les TTL des verrous), `recordLoginFailure` (`INCR` + pose le verrou si palier franchi), `clearLoginFailures` (reset sur succès). Clés `login:fail:{id}` / `login:lock:{id}` (id = `ip:…` / `email:…` normalisé). Sentry tag `kind=login_lockout`.
+- **`app/api/auth/login-guard/route.ts`** (NOUVEAU) : `POST { action: "check" | "fail" | "success", email }`, **zod**, IP via `x-forwarded-for`, renvoie `{ locked, retryAfter }` (toujours 200). Tombe dans le bucket middleware « auth » (20/min).
+- **`app/(auth)/login/page.tsx`** : flux **pré-check → signIn → fail/success**. ⚠️ Le **pré-check AVANT Supabase** est essentiel : sinon un **bon mot de passe pendant le verrou passerait** (le login Supabase est client-side, on ne doit pas l'appeler si verrouillé). Bandeau ambre « Trop de tentatives. Réessayez dans X minutes » + bouton désactivé + levée auto du verrou (`setTimeout`).
+- **`messages/{fr,en}.json`** : `auth.tooManyAttempts` + `auth.tooManyAttemptsHours` (pluriel ICU ; bascule minutes→heures pour le palier 24 h).
+- **⚠️ Modèle assumé** : enforcement **coopératif côté client** (le `signIn` reste dans le navigateur, cf. choix prod étape 32 — pas déplacé côté serveur). Protège l'abus via **notre UI** ; le garde-fou contre l'abus **direct de l'API Supabase** reste le **rate-limiting natif Supabase**. Verrou par IP → peut gêner derrière une IP partagée (NAT) ; le compteur **email** est le plus précis.
+- `npx tsc --noEmit` + `npm run build` **exit 0** (route `ƒ /api/auth/login-guard` enregistrée). ⏳ **Non testable en local** (fail-open) → **à valider en prod** : 5 essais ratés → message 5 min + bouton grisé. *(commit `3f1ab5e`)*
+
+---
+
 ## 📅 Journal — Rate-limit anti-bot landing (étape 35)
 
 **✅ Protection de la landing `/` contre les floods de bots**
@@ -217,6 +230,7 @@
 | Étape 33 — **Config des actions Automations + variables dynamiques** (drawer : champs par type — email sujet/corps, tâche titre, tag, statut select ; `config` persisté/pré-rempli ; moteur substitue `{{contact_name}}`/`{{studio_name}}`/`{{project_name}}`/`{{appointment_date}}` ; sujet requis email/rappel) | ✅ Fait — **validé en prod** |
 | Étape 34 — **Durcissement CSP (nonce + strict-dynamic)** (`lib/csp.ts` + nonce par requête dans `middleware.ts` → retire `'unsafe-inline'` de `script-src`, corrige le −20 Observatory ; CSP statique retirée de `next.config.mjs` ; `style-src 'unsafe-inline'` gardé ; trade-off : rendu dynamique des pages publiques) | ✅ Code + build OK — ⏳ **smoke-test user** (console CSP + Observatory) |
 | Étape 35 — **Rate-limit anti-bot landing** (bucket Upstash `landing` 200 GET/min/IP sur `/` dans `middleware.ts`, avant `updateSession` ; helper `clientIp` ; suite au flood ~671K req sur `/`) | ✅ Fait — ⚠️ botnet distribué → activer Vercel Attack Challenge Mode |
+| Étape 36 — **Lockout progressif login** (anti brute-force Upstash par IP+email : 5→5 min, 10→30 min, 20→24 h ; `lib/rate-limit.ts` + route `api/auth/login-guard` + pré-check avant signIn dans `login/page.tsx` ; i18n `tooManyAttempts`) | ✅ Code + build OK — ⏳ **valider en prod** (fail-open en local) |
 | Étapes suivantes | ⏳ i18n Settings studio/branding/billing, *(perf : supprimer le double getUser ; automations : câbler CONTRACT_SIGNED/TAG_ADDED)* |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
