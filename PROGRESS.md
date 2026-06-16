@@ -7,6 +7,22 @@
 
 ---
 
+## 📅 Journal — Durcissement CSP : nonce + strict-dynamic (étape 34)
+
+**✅ Content-Security-Policy renforcée — `script-src` sans `unsafe-inline`**
+- **Contexte** : une 1re passe avait ajouté une CSP statique dans `next.config.mjs` (`headers()`), mais Mozilla Observatory la notait **« implemented unsafely » (−20)** à cause de `'unsafe-inline'` dans **`script-src`**.
+- **Solution** : **nonce cryptographique par requête + `'strict-dynamic'`** (pattern officiel Next 14). La CSP **ne peut plus** vivre dans `next.config.mjs` (headers statiques évalués au build, le nonce change à chaque requête) → **déplacée dans `middleware.ts`**.
+- **`lib/csp.ts`** (nouveau) : `buildCsp(nonce)` → `default-src 'self'` ; `script-src 'self' 'nonce-…' 'strict-dynamic' js.stripe.com *.vercel-insights.com` ; `style-src 'self' 'unsafe-inline'` (**gardé volontairement** : Next/Tailwind injectent trop de styles inline ; Observatory ne pénalise pas les styles) ; `img-src 'self' data: blob: *.supabase.co` ; `connect-src 'self' *.supabase.co api.stripe.com *.sentry.io *.upstash.io resend.com` ; `frame-src js.stripe.com` ; **`object-src 'none'` · `base-uri 'self'` · `form-action 'self'` · `frame-ancestors 'none'`**. ⚠️ Sous `'strict-dynamic'` les **hôtes** de `script-src` (`js.stripe.com`, `*.vercel-insights.com`) sont **ignorés** par les navigateurs modernes (gardés en fallback CSP2) ; Stripe.js / Vercel Insights restent autorisés car **injectés par un script déjà fiable** (propagation de confiance).
+- **`middleware.ts`** : `nonce = Buffer.from(crypto.randomUUID()).toString("base64")` par requête → passé à `updateSession(request, nonce, csp)` (injecté dans les **headers de requête** → Next nonce automatiquement ses scripts de bootstrap) **et** posé sur la **réponse** `Content-Security-Policy` (ce que le navigateur applique), y compris sur les **redirects** login/dashboard.
+- **`lib/supabase/middleware.ts`** : `updateSession` accepte `(request, nonce?, csp?)` ; un helper `nextWithHeaders()` reconstruit `new Headers(request.headers)` + `x-nonce` + `content-security-policy` à **chaque** `NextResponse.next` (initial **et** dans `setAll` après `request.cookies.set`) → **cookies de refresh Supabase préservés** + nonce ajouté. Comportement auth strictement inchangé.
+- **`next.config.mjs`** : entrée `Content-Security-Policy` **retirée** de `securityHeaders` (les autres headers statiques — X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-DNS-Prefetch-Control, Permissions-Policy, HSTS — conservés).
+- **`app/layout.tsx`** : **aucune modif** — pas de `<Script>`/script inline custom dans le codebase (Next auto-nonce ses scripts via le header CSP de requête ; `SpeedInsights`/`Analytics` Vercel couverts par `'strict-dynamic'`).
+- **⚠️ Trade-off assumé** : un nonce par requête **force le rendu dynamique** de toutes les pages (Next ne peut pas pré-générer un nonce fixe) → **landing + pages légales perdent la génération statique / cache CDN du HTML**. Les 14 pages `(app)` étaient déjà `force-dynamic` → impact réel ≈ pages publiques marketing/légales seulement. Confirmé au build : toutes les routes en `ƒ (Dynamic)`.
+- **⚠️ Routes hors `matcher`** (`/auth/callback`, `/api/webhooks/*`, assets) **n'ont plus de CSP** (redirects/JSON sans HTML rendu → OK).
+- `node --check` + `npx tsc --noEmit` + `npm run build` **exit 0**. ⏳ **Smoke-test navigateur en attente côté user** (console sans violation CSP sur `/dashboard` + landing + `/pay/[id]` Stripe ; re-scan Observatory). *(commit `4eb4ec0`)*
+
+---
+
 ## 📅 Journal — Config des actions Automations (étape 33)
 
 **✅ Personnalisation des actions + variables dynamiques**
@@ -187,6 +203,7 @@
 | Étape 31 — **Exécution réelle des automatisations** (moteur `lib/automations/engine.ts` ; triggers NEW_LEAD/INVOICE_SENT/PAYMENT_RECEIVED/PROJECT_STATUS_CHANGED/APPOINTMENT_BOOKED branchés ; actions email/rappel/tâche/statut/tag ; délais via `AutomationQueue` + cron `0 9 * * *` ; PAYMENT_OVERDUE en cron) | ✅ Fait — ⚠️ user : poser `CRON_SECRET` (Vercel) |
 | Étape 32 — **Inbox master/détail mobile** (`< md` : liste plein écran ↔ conversation plein écran + bouton « ← Retour » ; bascule via `selectedId` ; desktop 2 colonnes inchangé) | ✅ Fait |
 | Étape 33 — **Config des actions Automations + variables dynamiques** (drawer : champs par type — email sujet/corps, tâche titre, tag, statut select ; `config` persisté/pré-rempli ; moteur substitue `{{contact_name}}`/`{{studio_name}}`/`{{project_name}}`/`{{appointment_date}}` ; sujet requis email/rappel) | ✅ Fait — **validé en prod** |
+| Étape 34 — **Durcissement CSP (nonce + strict-dynamic)** (`lib/csp.ts` + nonce par requête dans `middleware.ts` → retire `'unsafe-inline'` de `script-src`, corrige le −20 Observatory ; CSP statique retirée de `next.config.mjs` ; `style-src 'unsafe-inline'` gardé ; trade-off : rendu dynamique des pages publiques) | ✅ Code + build OK — ⏳ **smoke-test user** (console CSP + Observatory) |
 | Étapes suivantes | ⏳ i18n Settings studio/branding/billing, *(perf : supprimer le double getUser ; automations : câbler CONTRACT_SIGNED/TAG_ADDED)* |
 
 **Le projet compile (`npm run build` exit 0), tourne (`npm run dev`), et l'auth fonctionne end-to-end.**
