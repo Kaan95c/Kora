@@ -36,6 +36,10 @@ const limiters = {
   search: make(20, "rl:search"),
   payments: make(10, "rl:payments"),
   general: make(60, "rl:general"),
+  // Landing publique `/` : 200/min/IP. Au-dessus de tout usage humain normal
+  // (un visiteur ne recharge pas la home 200×/min), mais coupe les floods de
+  // bots (cf. attaque ~671K requêtes sur `/` en quelques minutes).
+  landing: make(200, "rl:landing"),
 } as const;
 
 export type RateScope = keyof typeof limiters;

@@ -21,6 +21,15 @@ const PROTECTED_PREFIXES = [
 
 const AUTH_PAGES = ["/login", "/register"];
 
+/** IP du client (Vercel renseigne `request.ip` ; fallback x-forwarded-for). */
+function clientIp(request: NextRequest): string {
+  return (
+    request.ip ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "anonymous"
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -34,13 +43,9 @@ export async function middleware(request: NextRequest) {
 
   // Rate limiting par IP sur /api/* (webhooks déjà hors matcher). Fail-open.
   if (pathname.startsWith("/api/")) {
-    const ip =
-      request.ip ??
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "anonymous";
     const { ok, retryAfter } = await checkRateLimit(
       scopeForPath(pathname),
-      ip
+      clientIp(request)
     );
     if (!ok) {
       return NextResponse.json(
@@ -56,6 +61,19 @@ export async function middleware(request: NextRequest) {
           },
         }
       );
+    }
+  }
+
+  // Protection anti-bot de la landing publique : 200 GET/min/IP sur `/`. Placé
+  // avant updateSession → un flood épargne aussi le getUser() Supabase. Fail-open
+  // si Upstash n'est pas configuré (dev). Voir lib/rate-limit.ts (scope landing).
+  if (pathname === "/" && request.method === "GET") {
+    const { ok, retryAfter } = await checkRateLimit("landing", clientIp(request));
+    if (!ok) {
+      return new NextResponse("Too Many Requests", {
+        status: 429,
+        headers: { "Retry-After": String(retryAfter) },
+      });
     }
   }
 
