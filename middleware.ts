@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { updateSession } from "@/lib/supabase/middleware";
 import { corsHeaders } from "@/lib/cors";
+import { buildCsp } from "@/lib/csp";
 import { checkRateLimit, scopeForPath } from "@/lib/rate-limit";
 
 // Routes (préfixes) qui exigent une session.
@@ -58,7 +59,14 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const { supabaseResponse, user } = await updateSession(request);
+  // Nonce CSP unique par requête : injecté dans les headers de requête (pour
+  // que Next nonce ses scripts) et posé sur la réponse (appliqué par le
+  // navigateur). Voir lib/csp.ts.
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCsp(nonce);
+
+  const { supabaseResponse, user } = await updateSession(request, nonce, csp);
+  supabaseResponse.headers.set("Content-Security-Policy", csp);
 
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -69,14 +77,18 @@ export async function middleware(request: NextRequest) {
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    redirect.headers.set("Content-Security-Policy", csp);
+    return redirect;
   }
 
   // Connecté sur login/register → /dashboard
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    redirect.headers.set("Content-Security-Policy", csp);
+    return redirect;
   }
 
   return supabaseResponse;

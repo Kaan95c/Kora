@@ -3,22 +3,10 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
-// Content-Security-Policy adaptée à Kora (Supabase + Stripe + Resend + Sentry +
-// Upstash + Vercel Insights). `'unsafe-inline'`/`'unsafe-eval'` restent requis
-// car Next 14 injecte des scripts/styles inline sans nonce — on resserre tout
-// de même les origines autorisées (atténue le XSS : exfiltration/iframe bridées).
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' js.stripe.com *.vercel-insights.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: *.supabase.co",
-  "connect-src 'self' *.supabase.co api.stripe.com *.sentry.io *.upstash.io resend.com",
-  "frame-src js.stripe.com",
-].join("; ");
-
-// Security headers appliqués à toutes les routes (défense en profondeur).
+// Security headers statiques appliqués à toutes les routes (défense en
+// profondeur). La Content-Security-Policy n'est PAS ici : elle utilise un nonce
+// par requête (impossible en statique) → générée dans middleware.ts (lib/csp.ts).
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
