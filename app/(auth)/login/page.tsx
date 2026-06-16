@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -87,19 +87,84 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lockMsg, setLockMsg] = useState<string | null>(null);
+  const [lockedUntil, setLockedUntil] = useState(0);
   const [touched, setTouched] = useState(false);
 
   const emailEmpty = touched && !email;
   const passwordEmpty = touched && !password;
+  const locked = lockedUntil > 0;
+
+  // Lève automatiquement le verrou quand son délai est écoulé.
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const ms = lockedUntil - Date.now();
+    if (ms <= 0) {
+      setLockedUntil(0);
+      setLockMsg(null);
+      return;
+    }
+    const id = setTimeout(() => {
+      setLockedUntil(0);
+      setLockMsg(null);
+    }, ms);
+    return () => clearTimeout(id);
+  }, [lockedUntil]);
+
+  /**
+   * Appelle la garde anti brute-force serveur. Fail-open : toute erreur
+   * réseau / réponse non-OK renvoie « non verrouillé » (ne bloque pas le login).
+   */
+  async function loginGuard(
+    action: "check" | "fail" | "success"
+  ): Promise<{ locked: boolean; retryAfter: number }> {
+    try {
+      const res = await fetch("/api/auth/login-guard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, email }),
+      });
+      if (!res.ok) return { locked: false, retryAfter: 0 };
+      return await res.json();
+    } catch {
+      return { locked: false, retryAfter: 0 };
+    }
+  }
+
+  function lockoutMessage(retryAfter: number): string {
+    const minutes = Math.ceil(retryAfter / 60);
+    if (minutes >= 60) {
+      return t("tooManyAttemptsHours", { hours: Math.ceil(retryAfter / 3600) });
+    }
+    return t("tooManyAttempts", { minutes });
+  }
+
+  function applyLock(retryAfter: number) {
+    setError(null);
+    setLockMsg(lockoutMessage(retryAfter));
+    setLockedUntil(Date.now() + retryAfter * 1000);
+    setLoading(false);
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setTouched(true);
     setError(null);
+    setLockMsg(null);
 
     if (!email || !password) return;
 
     setLoading(true);
+
+    // 1) Pré-check du verrou : si verrouillé, on n'appelle PAS Supabase (sinon
+    // un bon mot de passe pendant le verrou passerait).
+    const pre = await loginGuard("check");
+    if (pre.locked) {
+      applyLock(pre.retryAfter);
+      return;
+    }
+
+    // 2) Tentative Supabase (côté client, inchangé).
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -107,11 +172,19 @@ export default function LoginPage() {
     });
 
     if (error) {
+      // 3) Échec → on l'enregistre ; peut déclencher un verrou.
+      const after = await loginGuard("fail");
+      if (after.locked) {
+        applyLock(after.retryAfter);
+        return;
+      }
       setError(error.message);
       setLoading(false);
       return;
     }
 
+    // 4) Succès → reset des compteurs, puis redirection.
+    await loginGuard("success");
     router.push("/dashboard");
     router.refresh();
   }
@@ -134,11 +207,15 @@ export default function LoginPage() {
       {/* Colonne droite */}
       <div className="flex items-center justify-center bg-[#fbf9f5] p-12">
         <div className="w-full max-w-[400px]">
-          {error && (
+          {lockMsg ? (
+            <div className="font-inter mb-6 rounded-lg bg-[#ffe9c7] px-4 py-3 text-sm text-[#7a3e00]">
+              {lockMsg}
+            </div>
+          ) : error ? (
             <div className="font-inter mb-6 rounded-lg bg-[#ffdad6] px-4 py-3 text-sm text-[#93000a]">
               {error}
             </div>
-          )}
+          ) : null}
 
           <h1 className="font-manrope text-[32px] font-semibold text-[#1b1c1a]">
             {t("welcomeBack")}
@@ -210,7 +287,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || locked}
               className="font-manrope mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#52634c] text-[15px] font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:bg-[#3b4b36] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? (

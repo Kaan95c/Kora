@@ -85,3 +85,114 @@ export async function checkRateLimit(
     return { ok: true, retryAfter: 0 };
   }
 }
+
+/* ----------------------------------------------------------------------------
+ * Lockout progressif du login (anti brute-force).
+ *
+ * Suivi par IP ET par email (verrouillé si l'un OU l'autre l'est). Les échecs
+ * s'accumulent sur une fenêtre de 24 h ; la durée du verrou croît par paliers.
+ * Fail-open sans Upstash (dev local) — cohérent avec le reste du module.
+ *
+ * ⚠️ Enforcement coopératif côté client : le login Supabase se fait dans le
+ * navigateur ; le client appelle /api/auth/login-guard autour de la tentative.
+ * Le garde-fou contre l'abus direct de l'API Supabase reste le rate-limiting
+ * natif de Supabase. Ce lockout couvre l'abus via notre UI + l'UX.
+ * -------------------------------------------------------------------------- */
+
+// Paliers (échecs cumulés → durée du verrou, en secondes), du plus haut au plus bas.
+const LOGIN_LOCK_TIERS = [
+  { attempts: 20, lockSec: 24 * 60 * 60 },
+  { attempts: 10, lockSec: 30 * 60 },
+  { attempts: 5, lockSec: 5 * 60 },
+] as const;
+
+// Fenêtre d'accumulation des échecs (assez longue pour atteindre le palier 20).
+const LOGIN_FAIL_WINDOW_SEC = 24 * 60 * 60;
+
+const failKey = (id: string) => `login:fail:${id}`;
+const lockKey = (id: string) => `login:lock:${id}`;
+
+/** Les deux identifiants suivis pour une tentative : par IP + par email normalisé. */
+function loginIds(ip: string, email: string): string[] {
+  return [`ip:${ip}`, `email:${email.trim().toLowerCase()}`];
+}
+
+export type LoginLockStatus = { locked: boolean; retryAfter: number };
+
+/** Verrouillé si l'IP OU l'email a un verrou actif. `retryAfter` = secondes restantes (max). */
+export async function checkLoginLock(
+  ip: string,
+  email: string
+): Promise<LoginLockStatus> {
+  if (!redis) return { locked: false, retryAfter: 0 }; // fail-open (non configuré)
+  const r = redis;
+  try {
+    const ttls = await Promise.all(
+      loginIds(ip, email).map((id) => r.ttl(lockKey(id)))
+    );
+    const retryAfter = Math.max(0, ...ttls.map((t) => (t > 0 ? t : 0)));
+    return { locked: retryAfter > 0, retryAfter };
+  } catch (err) {
+    logger.error("login_lock_check_error", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return { locked: false, retryAfter: 0 }; // fail-open
+  }
+}
+
+/**
+ * Enregistre un échec de login (INCR par IP + email). Si un palier est franchi,
+ * pose/rafraîchit le verrou correspondant. Renvoie l'état de verrou résultant.
+ */
+export async function recordLoginFailure(
+  ip: string,
+  email: string
+): Promise<LoginLockStatus> {
+  if (!redis) return { locked: false, retryAfter: 0 }; // fail-open
+  const r = redis;
+  try {
+    let retryAfter = 0;
+    for (const id of loginIds(ip, email)) {
+      const count = await r.incr(failKey(id));
+      if (count === 1) await r.expire(failKey(id), LOGIN_FAIL_WINDOW_SEC);
+      const tier = LOGIN_LOCK_TIERS.find((t) => count >= t.attempts);
+      if (tier) {
+        await r.set(lockKey(id), "1", { ex: tier.lockSec });
+        retryAfter = Math.max(retryAfter, tier.lockSec);
+      }
+    }
+    if (retryAfter > 0) {
+      logger.warn("login_locked", { ip, retryAfter });
+      Sentry.captureMessage("login_locked", {
+        level: "warning",
+        tags: { kind: "login_lockout" },
+      });
+    }
+    return { locked: retryAfter > 0, retryAfter };
+  } catch (err) {
+    logger.error("login_failure_record_error", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return { locked: false, retryAfter: 0 }; // fail-open
+  }
+}
+
+/** Réinitialise compteurs + verrous (login réussi). */
+export async function clearLoginFailures(
+  ip: string,
+  email: string
+): Promise<void> {
+  if (!redis) return;
+  const r = redis;
+  try {
+    const keys = loginIds(ip, email).flatMap((id) => [
+      failKey(id),
+      lockKey(id),
+    ]);
+    await r.del(...keys);
+  } catch (err) {
+    logger.error("login_failure_clear_error", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+}

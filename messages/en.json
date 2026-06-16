@@ -426,6 +426,8 @@
     "forgotPassword": "Forgot password?",
     "signIn": "Sign in",
     "signingIn": "Signing in...",
+    "tooManyAttempts": "Too many attempts. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+    "tooManyAttemptsHours": "Too many attempts. Try again in {hours, plural, one {# hour} other {# hours}}.",
     "orContinueWith": "or continue with",
     "continueWithGoogle": "Continue with Google",
     "noAccount": "Don't have an account?",
