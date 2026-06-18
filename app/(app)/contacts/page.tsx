@@ -473,7 +473,7 @@ export default function ContactsPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-manrope text-[32px] font-semibold tracking-[-0.01em] text-on-surface">
             {t("title")}

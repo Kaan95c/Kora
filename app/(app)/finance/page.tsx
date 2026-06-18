@@ -174,7 +174,7 @@ export default function FinancePage() {
   return (
     <div>
       {/* HEADER */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-manrope text-[32px] font-semibold tracking-[-0.01em] text-[#1b1c1a]">
             {t("title")}
