@@ -1000,8 +1000,8 @@ export default function SchedulerPage() {
         {/* Calendrier */}
         <div className="rounded-2xl bg-white shadow-card">
           {/* Toolbar calendrier */}
-          <div className="flex items-center justify-between border-b border-[#efeeea] px-5 py-3.5">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 border-b border-[#efeeea] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               <div className="flex items-center gap-1">
                 <button
                   type="button"
@@ -1033,7 +1033,7 @@ export default function SchedulerPage() {
             </div>
 
             {/* Toggle Week / Month */}
-            <div className="flex items-center gap-1 rounded-full bg-[#efeeea] p-1">
+            <div className="flex items-center gap-1 self-start rounded-full bg-[#efeeea] p-1 sm:self-auto">
               <ViewToggleButton
                 active={view === "week"}
                 onClick={() => setView("week")}

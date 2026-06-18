@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  type CSSProperties,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -408,9 +409,13 @@ export default function DocumentsPage() {
 
   // Quick Action (Sidebar) → /documents?new=1 ouvre le drawer.
   useNewDrawerParam(() => setDrawerOpen(true));
-  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
-    null
-  );
+  const [menu, setMenu] = useState<{
+    id: string;
+    x: number;
+    top: number;
+    bottom: number;
+  } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [payLink, setPayLink] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -427,6 +432,15 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     loadDocs();
+  }, []);
+
+  // Détecte le mobile pour basculer le menu d'actions en bottom sheet.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
   }, []);
 
   // ─── Stats (sur l'ensemble, pas la vue filtrée) ───
@@ -530,7 +544,9 @@ export default function DocumentsPage() {
   function openMenu(e: MouseEvent<HTMLButtonElement>, id: string) {
     e.stopPropagation();
     const r = e.currentTarget.getBoundingClientRect();
-    setMenu((m) => (m?.id === id ? null : { id, x: r.right, y: r.bottom }));
+    setMenu((m) =>
+      m?.id === id ? null : { id, x: r.right, top: r.top, bottom: r.bottom }
+    );
   }
 
   // ─── Skeleton ───
@@ -555,6 +571,30 @@ export default function DocumentsPage() {
   }
 
   const menuDoc = menu ? docs.find((d) => d.id === menu.id) ?? null : null;
+
+  // Position du menu d'actions : bottom sheet en mobile (style géré par les
+  // classes), popover en desktop avec bascule vers le haut si pas assez de
+  // place en dessous + hauteur max (scroll) pour ne jamais déborder de l'écran.
+  const menuStyle: CSSProperties | undefined =
+    menu && !isMobile
+      ? (() => {
+          const gap = 6;
+          const margin = 8;
+          const left = Math.max(margin, menu.x - 208);
+          const openUp = menu.bottom > window.innerHeight / 2;
+          return openUp
+            ? {
+                bottom: window.innerHeight - menu.top + gap,
+                left,
+                maxHeight: menu.top - gap - margin,
+              }
+            : {
+                top: menu.bottom + gap,
+                left,
+                maxHeight: window.innerHeight - menu.bottom - gap - margin,
+              };
+        })()
+      : undefined;
 
   return (
     <div>
@@ -823,13 +863,16 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* Menu d'actions (popover fixe — évite le clipping de la table) */}
+      {/* Menu d'actions — bottom sheet (mobile) / popover avec flip (desktop) */}
       {menu && menuDoc && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setMenu(null)} />
           <div
-            className="fixed z-50 w-52 rounded-xl border border-[#c4c8be]/60 bg-white p-1.5 shadow-modal"
-            style={{ top: menu.y + 6, left: menu.x - 208 }}
+            className="fixed inset-0 z-40 bg-black/30 sm:bg-transparent"
+            onClick={() => setMenu(null)}
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] w-full overflow-y-auto rounded-t-2xl border border-[#c4c8be]/60 bg-white p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-modal sm:inset-x-auto sm:bottom-auto sm:w-52 sm:rounded-xl sm:p-1.5 sm:pb-1.5"
+            style={menuStyle}
           >
             {(["SENT", "SIGNED", "PAID"] as DocumentStatus[])
               .filter((s) => s !== menuDoc.status)
